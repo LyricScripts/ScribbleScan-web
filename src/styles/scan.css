@@ -1,0 +1,78 @@
+/* The phone camera page: same palette as the app, one big button. */
+:root {
+  --bg: #f6f8f7;
+  --ink: #1b2a2f;
+  --quiet: #5f6f73;
+  --accent: #0f6b57;
+  --bad: #b4233c;
+  --card: #ffffff;
+  --line: #d9e2e0;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121a1c;
+    --ink: #e6eeec;
+    --quiet: #9aabad;
+    --accent: #4fbf9f;
+    --bad: #f07a8e;
+    --card: #192326;
+    --line: #2b383b;
+    color-scheme: dark;
+  }
+}
+body.scan {
+  margin: 0;
+  font:
+    17px / 1.45 system-ui,
+    sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  text-align: center;
+}
+.scan main {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 28px 16px;
+}
+.scan h1 {
+  font-size: 20px;
+  margin: 0 0 6px;
+}
+#msg {
+  color: var(--quiet);
+  min-height: 1.5em;
+}
+.snap {
+  display: block;
+  margin: 28px 0 12px;
+  padding: 30px;
+  border-radius: 16px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.snap[hidden] {
+  display: none;
+}
+.scan ul {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+}
+.scan li {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 15px;
+}
+.bad {
+  color: var(--bad);
+}
