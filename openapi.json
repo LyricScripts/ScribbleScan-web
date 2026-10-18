@@ -28,7 +28,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OfferCreated"
+                }
               }
             }
           },
@@ -67,7 +69,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Claimed"
+                }
               }
             }
           },
@@ -116,7 +120,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OfferStatus"
+                }
               }
             }
           },
@@ -162,11 +168,9 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Server-sent events: state, claimed, approved, denied, collected, expired",
             "content": {
-              "application/json": {
-                "schema": {}
-              }
+              "text/event-stream": {}
             }
           },
           "422": {
@@ -205,7 +209,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OfferStatus"
+                }
               }
             }
           },
@@ -245,7 +251,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OfferStatus"
+                }
               }
             }
           },
@@ -294,7 +302,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Collected"
+                }
               }
             }
           },
@@ -323,7 +333,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LinkedDeviceOut"
+                  },
+                  "type": "array",
+                  "title": "Response Devices V1 Pair Devices Get"
+                }
               }
             }
           }
@@ -353,7 +369,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/LinkedDeviceOut"
+                }
               }
             }
           },
@@ -1357,6 +1375,48 @@
         ],
         "title": "ClaimIn"
       },
+      "Claimed": {
+        "properties": {
+          "offer_id": {
+            "type": "string",
+            "title": "Offer Id"
+          },
+          "claimer_key": {
+            "type": "string",
+            "title": "Claimer Key",
+            "description": "the scanning device's private key: X-Pairkit-Key / ?key="
+          },
+          "grant_to": {
+            "$ref": "#/components/schemas/GrantTo"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scopes"
+          },
+          "shower": {
+            "type": "string",
+            "title": "Shower",
+            "description": "how the device showing the QR describes itself"
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offer_id",
+          "claimer_key",
+          "grant_to",
+          "scopes",
+          "shower",
+          "expires_at"
+        ],
+        "title": "Claimed"
+      },
       "ClientConfig": {
         "properties": {
           "auth": {
@@ -1407,6 +1467,33 @@
         ],
         "title": "ClientConfig",
         "description": "Which sign-in this server uses. For \"oidc\", where and how to sign in."
+      },
+      "Collected": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "token",
+          "expires_at"
+        ],
+        "title": "Collected",
+        "description": "The grant from the app's issue_grant hook, plus whatever it put in Grant.data."
       },
       "CreateOfferIn": {
         "properties": {
@@ -1770,6 +1857,46 @@
         "title": "Issue",
         "description": "A business rule the document doesn't pass yet, e.g. rule=\"missing\", detail=\"total\"."
       },
+      "LinkedDeviceOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "device": {
+            "type": "string",
+            "title": "Device"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scopes"
+          },
+          "linked_at": {
+            "type": "string",
+            "title": "Linked At"
+          },
+          "via": {
+            "$ref": "#/components/schemas/GrantTo"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "device",
+          "scopes",
+          "linked_at",
+          "via",
+          "active"
+        ],
+        "title": "LinkedDeviceOut"
+      },
       "Me": {
         "properties": {
           "id": {
@@ -1810,6 +1937,99 @@
           "total"
         ],
         "title": "MonthTotal"
+      },
+      "OfferCreated": {
+        "properties": {
+          "offer_id": {
+            "type": "string",
+            "title": "Offer Id"
+          },
+          "secret": {
+            "type": "string",
+            "title": "Secret",
+            "description": "goes in the QR code, in the URL fragment"
+          },
+          "shower_key": {
+            "type": "string",
+            "title": "Shower Key",
+            "description": "this device's private key: X-Pairkit-Key / ?key="
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At"
+          },
+          "qr_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qr Url",
+            "description": "ready-to-encode scan link, when the router has a scan_url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offer_id",
+          "secret",
+          "shower_key",
+          "expires_at"
+        ],
+        "title": "OfferCreated"
+      },
+      "OfferStatus": {
+        "properties": {
+          "offer_id": {
+            "type": "string",
+            "title": "Offer Id"
+          },
+          "state": {
+            "$ref": "#/components/schemas/State"
+          },
+          "grant_to": {
+            "$ref": "#/components/schemas/GrantTo"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scopes"
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At"
+          },
+          "shower": {
+            "type": "string",
+            "title": "Shower"
+          },
+          "scanner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scanner"
+          }
+        },
+        "type": "object",
+        "required": [
+          "offer_id",
+          "state",
+          "grant_to",
+          "scopes",
+          "expires_at",
+          "shower",
+          "scanner"
+        ],
+        "title": "OfferStatus"
       },
       "PairOffer": {
         "properties": {
@@ -1920,6 +2140,18 @@
           "role"
         ],
         "title": "SpaceOut"
+      },
+      "State": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "claimed",
+          "approved",
+          "collected",
+          "denied",
+          "expired"
+        ],
+        "title": "State"
       },
       "Summary": {
         "properties": {

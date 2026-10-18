@@ -10,17 +10,12 @@ export type {
   Summary,
 } from "./generated";
 
-// pairkit's pairing routes (/v1/pair/*) don't declare response models yet, so these
-// mirror what pairkit returns.
-export interface PairClaim {
-  offer_id: string;
-  claimer_key: string;
-  shower: string | null;
-}
-export interface PairGrant {
-  token: string;
-  space_id: string;
-}
+import type { Collected } from "./generated";
+
+// Phone pairing (pairkit's /v1/pair/* routes): what the phone gets back when it claims a
+// code, and the grant it collects. ScribbleScan's grant hook adds the space to upload to.
+export type { Claimed as PairClaim } from "./generated";
+export type PairGrant = Collected & { space_id: string };
 
 /** A locale pack's JSON Schema for one document type; fields carry "x-kind". */
 export interface FieldSpec {
