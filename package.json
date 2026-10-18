@@ -1,0 +1,30 @@
+{
+  "name": "scribblescan-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ScribbleScan web app: receipts, spending and budgets, talking only to the ScribbleScan /v1 API",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check .",
+    "format": "biome check --write .",
+    "api:types": "npm exec --yes --package=@hey-api/openapi-ts@0.99.0 --package=typescript@6.0.3 -- openapi-ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "happy-dom": "21.0.3",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  },
+  "dependencies": {
+    "@fontsource/hind-siliguri": "5.3.0"
+  }
+}
