@@ -3,7 +3,7 @@ import type { DocSchema, DocumentOut, FieldSpec, Issue } from "../api/types";
 import { $, h, render, toast } from "../dom";
 import { nice, parseAmount, title, toDMY, toISO } from "../format";
 import { state } from "../state";
-import { view } from "./shared";
+import { type Page, view } from "./shared";
 
 type Kind = NonNullable<FieldSpec["x-kind"]>;
 
@@ -48,7 +48,7 @@ export function issueText(i: Issue): string {
   }
 }
 
-export async function docView(id: string): Promise<void> {
+export async function docView(page: Page, id: string): Promise<void> {
   const [doc, cats] = await Promise.all([
     api<DocumentOut>(`/v1/documents/${id}`),
     state.categories.length ? state.categories : api<string[]>("/v1/categories"),
@@ -166,7 +166,7 @@ export async function docView(id: string): Promise<void> {
       });
       toast(out.status === "ready" ? "Saved" : "Saved. Some numbers still don't add up.");
       if (out.status === "ready") history.back();
-      else await docView(id);
+      else await docView(page, id);
     } catch (e) {
       toast((e as Error).message);
     }
@@ -179,8 +179,7 @@ export async function docView(id: string): Promise<void> {
     failed: doc.error ?? "This file couldn't be read.",
   }[doc.status];
 
-  render(
-    view(),
+  page.render(
     h(
       "div",
       { class: "row spread" },

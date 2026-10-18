@@ -3,13 +3,13 @@ import type { DocumentOut, Expenses, PairOffer } from "../api/types";
 import { h, render, toast } from "../dom";
 import { money, thisMonth } from "../format";
 import { currentSpace } from "../state";
-import { STATUS_LABEL, view } from "./shared";
+import { type Page, STATUS_LABEL } from "./shared";
 
 /** Stops the pairing event stream and polling when the user leaves the Add page. */
 let cleanup: (() => void) | null = null;
 export const leaveAdd = () => cleanup?.();
 
-export function addView(): void {
+export function addView(page: Page): void {
   const space = currentSpace();
   const list = h("ul", { class: "uploads" });
   const input = h("input", {
@@ -73,8 +73,7 @@ export function addView(): void {
     ),
   );
 
-  render(
-    view(),
+  page.render(
     h("h1", {}, `Add to ${space.name}`),
     drop,
     h("h2", {}, "Use your phone as the camera"),

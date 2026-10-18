@@ -1,11 +1,11 @@
 import { api } from "../api/client";
 import type { Summary } from "../api/types";
-import { categoryColor, h, render, toast } from "../dom";
+import { categoryColor, h, toast } from "../dom";
 import { nice, thisMonth } from "../format";
 import { currentSpace } from "../state";
-import { view } from "./shared";
+import type { Page } from "./shared";
 
-export async function budgetsView(): Promise<void> {
+export async function budgetsView(page: Page): Promise<void> {
   const space = currentSpace();
   const [cats, s] = await Promise.all([
     api<string[]>("/v1/categories"),
@@ -24,8 +24,7 @@ export async function budgetsView(): Promise<void> {
     if (current[c]) el.value = String(current[c]);
     return [c, el] as const;
   });
-  render(
-    view(),
+  page.render(
     h("h1", {}, "Monthly budgets"),
     h(
       "p",

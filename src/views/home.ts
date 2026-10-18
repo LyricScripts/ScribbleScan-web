@@ -1,11 +1,11 @@
 import { api } from "../api/client";
 import type { Summary } from "../api/types";
-import { categoryColor, h, render } from "../dom";
+import { categoryColor, h } from "../dom";
 import { currencySymbol, money, monthLabel, nice } from "../format";
 import { currentSpace, state } from "../state";
-import { download, monthNav, view } from "./shared";
+import { download, monthNav, type Page } from "./shared";
 
-export async function homeView(refresh: () => void): Promise<void> {
+export async function homeView(page: Page, refresh: () => void): Promise<void> {
   const s = await api<Summary>(`/v1/spaces/${currentSpace().id}/summary?month=${state.month}`);
   const cur = s.currency;
   const spent = s.categories.filter((c) => c.spent > 0);
@@ -149,5 +149,5 @@ export async function homeView(refresh: () => void): Promise<void> {
             ),
           ),
         ];
-  render(view(), monthNav(refresh), content);
+  page.render(monthNav(refresh), content);
 }

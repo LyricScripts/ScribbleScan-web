@@ -1,11 +1,11 @@
 import { api } from "../api/client";
 import type { DocumentOut, Expenses } from "../api/types";
-import { h, render } from "../dom";
+import { h } from "../dom";
 import { dayLabel, money, nice, title } from "../format";
 import { currentSpace, state } from "../state";
-import { monthNav, STATUS_LABEL, view } from "./shared";
+import { monthNav, type Page, STATUS_LABEL } from "./shared";
 
-export async function receiptsView(params: URLSearchParams, refresh: () => void): Promise<void> {
+export async function receiptsView(page: Page, params: URLSearchParams, refresh: () => void): Promise<void> {
   const space = currentSpace();
   const filter = params.get("category") ?? params.get("status") ?? "";
   const data = await api<Expenses>(`/v1/spaces/${space.id}/expenses?month=${state.month}`);
@@ -60,8 +60,7 @@ export async function receiptsView(params: URLSearchParams, refresh: () => void)
         filter ? null : h("a", { class: "primary", href: "#/add" }, "Add a receipt"),
       );
 
-  render(
-    view(),
+  page.render(
     monthNav(refresh),
     h("h1", {}, "Receipts"),
     h(

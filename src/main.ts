@@ -16,19 +16,23 @@ import { budgetsView } from "./views/budgets";
 import { homeView } from "./views/home";
 import { receiptsView } from "./views/receipts";
 import { docView } from "./views/review";
-import { view } from "./views/shared";
+import { newPage, type Page, view } from "./views/shared";
 import { showSignIn } from "./views/signin";
 import { newSpaceView } from "./views/spaces";
 
-type Route = [RegExp, string | null, (match: RegExpMatchArray, query: URLSearchParams) => unknown];
+type Route = [
+  RegExp,
+  string | null,
+  (page: Page, match: RegExpMatchArray, query: URLSearchParams) => unknown,
+];
 
 const routes: Route[] = [
-  [/^#\/home$/, "home", () => homeView(route)],
-  [/^#\/receipts$/, "receipts", (_, q) => receiptsView(q, route)],
-  [/^#\/doc\/([\w-]+)$/, "receipts", (m) => docView(m[1] ?? "")],
-  [/^#\/add$/, "add", () => addView()],
-  [/^#\/budgets$/, "budgets", () => budgetsView()],
-  [/^#\/spaces\/new$/, null, () => newSpaceView(loadSpaces)],
+  [/^#\/home$/, "home", (page) => homeView(page, route)],
+  [/^#\/receipts$/, "receipts", (page, _, q) => receiptsView(page, q, route)],
+  [/^#\/doc\/([\w-]+)$/, "receipts", (page, m) => docView(page, m[1] ?? "")],
+  [/^#\/add$/, "add", (page) => addView(page)],
+  [/^#\/budgets$/, "budgets", (page) => budgetsView(page)],
+  [/^#\/spaces\/new$/, null, (page) => newSpaceView(page, loadSpaces)],
 ];
 
 async function route(): Promise<void> {
@@ -44,13 +48,13 @@ async function route(): Promise<void> {
     if (a.dataset.tab === tab) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   }
+  const page = newPage();
   try {
-    await show(path.match(re) as RegExpMatchArray, new URLSearchParams(query));
-    view().focus({ preventScroll: true });
+    await show(page, path.match(re) as RegExpMatchArray, new URLSearchParams(query));
+    if (page.current) view().focus({ preventScroll: true });
   } catch (e) {
     if (e instanceof SignedOut) return;
-    render(
-      view(),
+    page.render(
       h(
         "div",
         { class: "empty" },
@@ -141,7 +145,10 @@ $<HTMLSelectElement>("#space").addEventListener("change", (e) => {
   }
   state.space = state.spaces.find((s) => s.id === select.value) ?? state.space;
   if (state.space) store.set("ss.space", state.space.id);
-  void route();
+  leaveAdd(); // a phone pairing in progress belongs to the old space
+  // A receipt belongs to one space: go to the new space's list rather than show it under the wrong name.
+  if (location.hash.startsWith("#/doc/")) location.hash = "#/receipts";
+  else void route();
 });
 $("#signout").addEventListener("click", () => void signOut());
 window.addEventListener("hashchange", () => void route());

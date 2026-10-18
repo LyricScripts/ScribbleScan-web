@@ -1,9 +1,9 @@
 import { api } from "../api/client";
 import type { SpaceOut } from "../api/types";
-import { h, render, toast } from "../dom";
-import { view } from "./shared";
+import { h, toast } from "../dom";
+import type { Page } from "./shared";
 
-export function newSpaceView(onCreated: (id: string) => Promise<void>): void {
+export function newSpaceView(page: Page, onCreated: (id: string) => Promise<void>): void {
   const name = h("input", {
     type: "text",
     id: "sp_name",
@@ -17,8 +17,7 @@ export function newSpaceView(onCreated: (id: string) => Promise<void>): void {
     h("option", { value: "business" }, "Business: a shop, company or client"),
     h("option", { value: "personal" }, "Personal: home or family"),
   );
-  render(
-    view(),
+  page.render(
     h("h1", {}, "New space"),
     h(
       "p",

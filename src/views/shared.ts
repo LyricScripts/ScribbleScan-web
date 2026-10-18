@@ -1,9 +1,32 @@
 import { request } from "../api/client";
-import { h, toast } from "../dom";
+import { type Child, h, render, toast } from "../dom";
 import { monthLabel, shiftMonth, thisMonth } from "../format";
 import { currentSpace, state } from "../state";
 
 export const view = () => document.getElementById("view") as HTMLElement;
+
+/**
+ * One navigation's claim on the screen. Views load data, then render through their page;
+ * once the user has moved on (another page, month or space), a late response is dropped
+ * instead of overwriting what they are looking at now.
+ */
+export interface Page {
+  render(...kids: Child[]): void;
+  readonly current: boolean;
+}
+
+let latest = 0;
+export function newPage(): Page {
+  const id = ++latest;
+  return {
+    render: (...kids) => {
+      if (id === latest) render(view(), ...kids);
+    },
+    get current() {
+      return id === latest;
+    },
+  };
+}
 
 export const STATUS_LABEL: Record<string, string> = {
   ready: "Done",
