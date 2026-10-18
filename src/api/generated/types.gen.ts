@@ -73,6 +73,37 @@ export type ClaimIn = {
 };
 
 /**
+ * Claimed
+ */
+export type Claimed = {
+    /**
+     * Offer Id
+     */
+    offer_id: string;
+    /**
+     * Claimer Key
+     *
+     * the scanning device's private key: X-Pairkit-Key / ?key=
+     */
+    claimer_key: string;
+    grant_to: GrantTo;
+    /**
+     * Scopes
+     */
+    scopes: Array<string>;
+    /**
+     * Shower
+     *
+     * how the device showing the QR describes itself
+     */
+    shower: string;
+    /**
+     * Expires At
+     */
+    expires_at: string;
+};
+
+/**
  * ClientConfig
  *
  * Which sign-in this server uses. For "oidc", where and how to sign in.
@@ -94,6 +125,23 @@ export type ClientConfig = {
      * Scopes
      */
     scopes?: string | null;
+};
+
+/**
+ * Collected
+ *
+ * The grant from the app's issue_grant hook, plus whatever it put in Grant.data.
+ */
+export type Collected = {
+    /**
+     * Token
+     */
+    token: string;
+    /**
+     * Expires At
+     */
+    expires_at: string | null;
+    [key: string]: unknown;
 };
 
 /**
@@ -319,6 +367,33 @@ export type Issue = {
 };
 
 /**
+ * LinkedDeviceOut
+ */
+export type LinkedDeviceOut = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Device
+     */
+    device: string;
+    /**
+     * Scopes
+     */
+    scopes: Array<string>;
+    /**
+     * Linked At
+     */
+    linked_at: string;
+    via: GrantTo;
+    /**
+     * Active
+     */
+    active: boolean;
+};
+
+/**
  * Me
  */
 export type Me = {
@@ -348,6 +423,66 @@ export type MonthTotal = {
      * Total
      */
     total: number;
+};
+
+/**
+ * OfferCreated
+ */
+export type OfferCreated = {
+    /**
+     * Offer Id
+     */
+    offer_id: string;
+    /**
+     * Secret
+     *
+     * goes in the QR code, in the URL fragment
+     */
+    secret: string;
+    /**
+     * Shower Key
+     *
+     * this device's private key: X-Pairkit-Key / ?key=
+     */
+    shower_key: string;
+    /**
+     * Expires At
+     */
+    expires_at: string;
+    /**
+     * Qr Url
+     *
+     * ready-to-encode scan link, when the router has a scan_url
+     */
+    qr_url?: string | null;
+};
+
+/**
+ * OfferStatus
+ */
+export type OfferStatus = {
+    /**
+     * Offer Id
+     */
+    offer_id: string;
+    state: State;
+    grant_to: GrantTo;
+    /**
+     * Scopes
+     */
+    scopes: Array<string>;
+    /**
+     * Expires At
+     */
+    expires_at: string;
+    /**
+     * Shower
+     */
+    shower: string;
+    /**
+     * Scanner
+     */
+    scanner: string | null;
 };
 
 /**
@@ -426,6 +561,11 @@ export type SpaceOut = {
      */
     role: string;
 };
+
+/**
+ * State
+ */
+export type State = 'pending' | 'claimed' | 'approved' | 'collected' | 'denied' | 'expired';
 
 /**
  * Summary
@@ -510,8 +650,10 @@ export type CreateOfferV1PairOffersPostResponses = {
     /**
      * Successful Response
      */
-    201: unknown;
+    201: OfferCreated;
 };
+
+export type CreateOfferV1PairOffersPostResponse = CreateOfferV1PairOffersPostResponses[keyof CreateOfferV1PairOffersPostResponses];
 
 export type ClaimV1PairClaimPostData = {
     body: ClaimIn;
@@ -533,8 +675,10 @@ export type ClaimV1PairClaimPostResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: Claimed;
 };
+
+export type ClaimV1PairClaimPostResponse = ClaimV1PairClaimPostResponses[keyof ClaimV1PairClaimPostResponses];
 
 export type StatusV1PairOffersOfferIdGetData = {
     body?: never;
@@ -567,8 +711,10 @@ export type StatusV1PairOffersOfferIdGetResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: OfferStatus;
 };
+
+export type StatusV1PairOffersOfferIdGetResponse = StatusV1PairOffersOfferIdGetResponses[keyof StatusV1PairOffersOfferIdGetResponses];
 
 export type EventsV1PairOffersOfferIdEventsGetData = {
     body?: never;
@@ -598,7 +744,7 @@ export type EventsV1PairOffersOfferIdEventsGetError = EventsV1PairOffersOfferIdE
 
 export type EventsV1PairOffersOfferIdEventsGetResponses = {
     /**
-     * Successful Response
+     * Server-sent events: state, claimed, approved, denied, collected, expired
      */
     200: unknown;
 };
@@ -628,8 +774,10 @@ export type ApproveV1PairOffersOfferIdApprovePostResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: OfferStatus;
 };
+
+export type ApproveV1PairOffersOfferIdApprovePostResponse = ApproveV1PairOffersOfferIdApprovePostResponses[keyof ApproveV1PairOffersOfferIdApprovePostResponses];
 
 export type DenyV1PairOffersOfferIdDenyPostData = {
     body?: never;
@@ -656,8 +804,10 @@ export type DenyV1PairOffersOfferIdDenyPostResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: OfferStatus;
 };
+
+export type DenyV1PairOffersOfferIdDenyPostResponse = DenyV1PairOffersOfferIdDenyPostResponses[keyof DenyV1PairOffersOfferIdDenyPostResponses];
 
 export type CollectV1PairOffersOfferIdCollectPostData = {
     body?: never;
@@ -690,8 +840,10 @@ export type CollectV1PairOffersOfferIdCollectPostResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: Collected;
 };
+
+export type CollectV1PairOffersOfferIdCollectPostResponse = CollectV1PairOffersOfferIdCollectPostResponses[keyof CollectV1PairOffersOfferIdCollectPostResponses];
 
 export type DevicesV1PairDevicesGetData = {
     body?: never;
@@ -702,10 +854,14 @@ export type DevicesV1PairDevicesGetData = {
 
 export type DevicesV1PairDevicesGetResponses = {
     /**
+     * Response Devices V1 Pair Devices Get
+     *
      * Successful Response
      */
-    200: unknown;
+    200: Array<LinkedDeviceOut>;
 };
+
+export type DevicesV1PairDevicesGetResponse = DevicesV1PairDevicesGetResponses[keyof DevicesV1PairDevicesGetResponses];
 
 export type UnlinkV1PairDevicesDeviceIdDeleteData = {
     body?: never;
@@ -732,8 +888,10 @@ export type UnlinkV1PairDevicesDeviceIdDeleteResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: LinkedDeviceOut;
 };
+
+export type UnlinkV1PairDevicesDeviceIdDeleteResponse = UnlinkV1PairDevicesDeviceIdDeleteResponses[keyof UnlinkV1PairDevicesDeviceIdDeleteResponses];
 
 export type PairPhoneV1SpacesSpaceIdPairPostData = {
     body?: never;

@@ -7,7 +7,7 @@ The owner is a Principal Software Engineer in Bangladesh building this as a port
 ## Rules
 
 - **Talk only to `/v1`.** Same address as the API in production (Caddy routes `/v1` to it) and in development (Vite proxy). No CORS, no other backends.
-- **Types come from the API's OpenAPI spec** (`npm run api:types` -> `src/api/generated`, never edit by hand). When the API changes, refresh `openapi.json` and regenerate. pairkit's `/v1/pair/*` routes have no response models yet; their types are hand-written in `src/api/types.ts`.
+- **Types come from the API's OpenAPI spec** (`npm run api:types` -> `src/api/generated`, never edit by hand). When the API changes, refresh `openapi.json` and regenerate. That includes pairkit's `/v1/pair/*` routes; `PairGrant` adds the `space_id` ScribbleScan's grant hook puts in the grant.
 - **No UI framework**, by choice: plain DOM via `h()`/`render()` in `src/dom.ts`. They flatten nested arrays and drop null/false, so views can write `cond ? h(...) : null`.
 - **Only use things with a future** (the owner's rule): nothing deprecated, unmaintained or near end of life. Node 24 LTS, TypeScript 7, Vite 8, Vitest, Biome. Check maintenance before adding a dependency, and prefer none.
 - Dates are DD/MM/YYYY text fields converted to ISO (native date inputs show US order in many browsers). Money uses lakh grouping (`en-IN`). The current month comes from the local clock, not UTC.
