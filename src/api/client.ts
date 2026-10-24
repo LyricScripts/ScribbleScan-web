@@ -20,7 +20,20 @@ interface Session {
 
 export const session: Session = { config: null, token: store.get("ss.token"), onSignedOut: () => {} };
 
+export const DEMO_ACCOUNT_EMAIL = "test@email.com";
+const DEMO_SESSION_KEY = "ss.preview-email";
 const TOKEN_KEYS = ["ss.token", "ss.refresh", "ss.expires", "ss.idtoken"];
+
+export function isDemoSession(): boolean {
+  return store.get(DEMO_SESSION_KEY) === DEMO_ACCOUNT_EMAIL;
+}
+
+export function startDemoSession(email: string): boolean {
+  if (email.trim().toLowerCase() !== DEMO_ACCOUNT_EMAIL) return false;
+  clearTokens();
+  store.set(DEMO_SESSION_KEY, DEMO_ACCOUNT_EMAIL);
+  return true;
+}
 
 export function oidcConfig(): oidc.OidcConfig | null {
   const c = session.config;
@@ -41,6 +54,7 @@ export function saveTokens(t: oidc.Tokens): void {
 export function clearTokens(): void {
   session.token = null;
   for (const k of TOKEN_KEYS) store.set(k, null);
+  store.set(DEMO_SESSION_KEY, null);
 }
 
 let refreshing: Promise<boolean> | null = null;

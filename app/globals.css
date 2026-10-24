@@ -1,0 +1,114 @@
+@import "tailwindcss";
+@import "@fontsource/hind-siliguri/400.css";
+@import "@fontsource/hind-siliguri/500.css";
+@import "@fontsource/hind-siliguri/600.css";
+@import "@fontsource/hind-siliguri/700.css";
+
+:root {
+  color-scheme: dark;
+  --paper: #0a0b0e;
+  --card: #111318;
+  --ink: #f4f5f7;
+  --quiet: #969aa4;
+  --line: #262930;
+  --ledger: #70dfbd;
+  --ledger-button: #126d58;
+  --ledger-soft: #17382f;
+  --stamp: #ff5964;
+  --amber: #ffc044;
+  --amber-soft: #362a16;
+  --chart-track: #202229;
+  --sidebar: #0e0f13;
+  --raised: #17191f;
+  --raised-hover: #202229;
+  --track: #25272e;
+  --brand-tile: #f0f1f2;
+  --brand-ink: #111216;
+  --font-hind: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --paper: #f3f5f7;
+  --card: #ffffff;
+  --ink: #1b2026;
+  --quiet: #68727f;
+  --line: #dfe3e8;
+  --ledger: #187b5e;
+  --ledger-button: #126d58;
+  --ledger-soft: #dcefe7;
+  --stamp: #c93845;
+  --amber: #956000;
+  --amber-soft: #fbf0d8;
+  --chart-track: #dce1e7;
+  --sidebar: #ffffff;
+  --raised: #f6f7f9;
+  --raised-hover: #e9edf1;
+  --track: #e1e5e9;
+  --brand-tile: #e9edf1;
+  --brand-ink: #111216;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-quiet: var(--quiet);
+  --color-line: var(--line);
+  --color-ledger: var(--ledger);
+  --color-ledger-button: var(--ledger-button);
+  --color-ledger-soft: var(--ledger-soft);
+  --color-chart-track: var(--chart-track);
+  --color-stamp: var(--stamp);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --font-sans: var(--font-hind);
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 0.875rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(1000px 520px at 78% -12%, rgb(30 78 66 / 16%), transparent 64%),
+    var(--paper);
+  color: var(--ink);
+  font-family: var(--font-hind);
+  -webkit-font-smoothing: antialiased;
+}
+
+:root[data-theme="light"] body {
+  background: radial-gradient(900px 460px at 80% -12%, rgb(24 123 94 / 7%), transparent 64%), var(--paper);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+a,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ledger);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: #285b4d;
+  color: #fff;
+}
