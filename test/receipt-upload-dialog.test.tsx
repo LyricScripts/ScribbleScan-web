@@ -135,7 +135,7 @@ describe("receipt upload dialog", () => {
 
     await chooseReceipt(file);
 
-    expect(mocks.upload).toHaveBeenCalledWith("space-1", file);
+    expect(mocks.upload).toHaveBeenCalledWith("space-1", file, "receipt");
     expect(mocks.refresh).not.toHaveBeenCalled();
     expect(host.textContent).toContain("Details read from receipt");
     expect(host.textContent).toContain("Line items");
@@ -163,6 +163,20 @@ describe("receipt upload dialog", () => {
     expect(onClose).toHaveBeenCalledOnce();
     expect(mocks.refresh).toHaveBeenCalledOnce();
     expect(mocks.api.mock.calls.some(([, options]) => (options as { method?: string } | undefined)?.method === "DELETE")).toBe(false);
+  });
+
+  it("uploads the selected file as a bank statement when chosen", async () => {
+    await renderDialog();
+    const select = host.querySelector<HTMLSelectElement>('select[aria-label="Document type"]');
+    expect(select).toBeTruthy();
+    if (!select) throw new Error("Document type selector is missing");
+    const setValue = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+    setValue?.call(select, "bank_statement");
+    await act(async () => select.dispatchEvent(new Event("change", { bubbles: true })));
+
+    const file = new File(["statement"], "statement.pdf", { type: "application/pdf" });
+    await chooseReceipt(file);
+    expect(mocks.upload).toHaveBeenCalledWith("space-1", file, "bank_statement");
   });
 
   it("deletes an unfinished uploaded receipt when the user cancels", async () => {

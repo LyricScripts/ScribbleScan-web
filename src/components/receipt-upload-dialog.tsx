@@ -79,6 +79,7 @@ export function ReceiptUploadDialog({ open, onClose }: { open: boolean; onClose:
   const [photo, setPhoto] = useState<{ url: string; pdf: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
   const [discarding, setDiscarding] = useState(false);
+  const [docType, setDocType] = useState<"receipt" | "bank_statement">("receipt");
 
   const discardDraft = useCallback(async () => {
     if (saving || discarding) return;
@@ -216,7 +217,7 @@ export function ReceiptUploadDialog({ open, onClose }: { open: boolean; onClose:
     }
     setStage("uploading");
     try {
-      const uploaded = await upload(activeSpaceId, picked);
+      const uploaded = await upload(activeSpaceId, picked, docType);
       draftId.current = uploaded.id;
       await openReview(uploaded);
     } catch (cause) {
@@ -272,7 +273,8 @@ export function ReceiptUploadDialog({ open, onClose }: { open: boolean; onClose:
   const canClose = stage !== "uploading" && !saving && !discarding;
   const previewUrl = photo?.url ?? localPreview;
   const isPdf = photo?.pdf ?? file?.type === "application/pdf";
-  const dialogTitle = stage === "review" ? "Review receipt" : stage === "processing" ? "Reading receipt" : stage === "uploading" ? "Uploading receipt" : stage === "selected" ? "Receipt selected" : "Add receipt";
+  const documentLabel = docType === "bank_statement" ? "bank statement" : "receipt";
+  const dialogTitle = stage === "review" ? `Review ${documentLabel}` : stage === "processing" ? `Reading ${documentLabel}` : stage === "uploading" ? `Uploading ${documentLabel}` : stage === "selected" ? `${title(documentLabel)} selected` : "Add a document";
 
   return (
     <div
@@ -308,7 +310,14 @@ export function ReceiptUploadDialog({ open, onClose }: { open: boolean; onClose:
               <div className="mx-auto grid h-12 w-12 place-items-center rounded-lg bg-ledger-soft text-ledger">
                 <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
               </div>
-              <p className="mt-3 font-semibold text-ink">Drop a receipt here</p>
+              {source === "connected" ? <label className="mx-auto block max-w-xs text-left text-sm font-semibold text-ink">
+                Document type
+                <select aria-label="Document type" value={docType} onChange={(event) => setDocType(event.target.value as "receipt" | "bank_statement")} className={fieldClass()}>
+                  <option value="receipt">Receipt or invoice</option>
+                  <option value="bank_statement">Bank statement</option>
+                </select>
+              </label> : null}
+              <p className="mt-3 font-semibold text-ink">Drop a {documentLabel} here</p>
               <p className="mt-1 text-sm text-quiet">Choose an image or PDF. You’ll review the extracted fields in this dialog.</p>
               <button ref={chooseButton} type="button" onClick={() => input.current?.click()} className="mt-4 rounded-md bg-ledger-button px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0a5948]">Choose image or PDF</button>
             </div>

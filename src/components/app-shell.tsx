@@ -12,11 +12,12 @@ import { store } from "@/src/store";
 import { ProfileMenu, type AccountNotification } from "@/src/components/profile-menu";
 import { ReceiptUploadDialog } from "@/src/components/receipt-upload-dialog";
 
-type NavItem = { href?: string; label: string; icon: "spending" | "receipts" | "add" | "budgets" | "spaces" };
+type NavItem = { href?: string; label: string; icon: "spending" | "receipts" | "add" | "budgets" | "spaces" | "reconciliation" };
 
 const navItems: NavItem[] = [
   { href: "/", label: "Spending", icon: "spending" },
   { href: "/receipts", label: "Receipts", icon: "receipts" },
+  { href: "/reconciliation", label: "Match", icon: "reconciliation" },
   { label: "Add", icon: "add" },
   { href: "/budgets", label: "Budgets", icon: "budgets" },
   { href: "/spaces", label: "Spaces", icon: "spaces" },
@@ -29,6 +30,7 @@ function NavIcon({ name }: { name: NavItem["icon"] }) {
     add: <path d="M12 5v14m-7-7h14" />,
     budgets: <path d="M12 3a9 9 0 1 0 9 9h-9V3Zm3-1v6h6" />,
     spaces: <path d="M3 7.5 12 3l9 4.5-9 4.5-9-4.5Zm0 0V17l9 4 9-4V7.5M12 12v9" />,
+    reconciliation: <path d="M8 7h12m0 0-3-3m3 3-3 3M16 17H4m0 0 3 3m-3-3 3-3" />,
   };
 
   return (
@@ -46,7 +48,7 @@ function isActive(pathname: string, href: string): boolean {
 function Navigation({ mobile = false, onAddReceipt }: { mobile?: boolean; onAddReceipt: () => void }) {
   const pathname = usePathname();
   return (
-    <nav aria-label="Main navigation" className={mobile ? "grid grid-cols-5 gap-1" : "flex flex-col gap-1"}>
+    <nav aria-label="Main navigation" className={mobile ? "grid grid-cols-6 gap-1" : "flex flex-col gap-1"}>
       {navItems.map((item) => {
         const active = item.href ? isActive(pathname, item.href) : false;
         const className = `flex items-center border-0 bg-transparent text-left ${mobile ? "flex-col gap-1 px-1 py-2 text-xs" : "gap-3 rounded-lg px-3 py-2.5 text-sm"} ${active ? "bg-ledger-soft font-semibold text-ledger" : "text-quiet hover:bg-paper hover:text-ink"} transition-colors`;
@@ -197,7 +199,7 @@ function AppFrame({ children }: { children: ReactNode }) {
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" aria-haspopup="dialog" aria-expanded={uploadOpen} onClick={openUpload} className="inline-flex items-center gap-2 rounded-lg border-0 bg-ledger-button px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#0a5948] sm:px-4">
               <NavIcon name="add" />
-              <span className="hidden sm:inline">Add receipt</span>
+              <span className="hidden sm:inline">Add document</span>
             </button>
             <ProfileMenu email={isDemoSession() ? DEMO_ACCOUNT_EMAIL : null} preview={isDemoSession()} space={activeSpace} currency={currency} notifications={notifications} onNotificationsOpened={source === "connected" ? () => void markServerNotificationsRead() : undefined} onDownloadCsv={downloadCsv} onSignOut={() => void signOut()} />
           </div>

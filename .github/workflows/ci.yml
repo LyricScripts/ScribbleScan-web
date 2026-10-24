@@ -22,11 +22,26 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - name: Image builds and serves both pages
+      - name: Image serves pages with request CSP nonce
         run: |
           podman build -t scribblescan-web:ci .
-          printf ':8080 {\n\troot * /srv/web\n\ttry_files {path} {path}.html /index.html\n\tfile_server\n}\n' > Caddyfile.ci
-          podman run -d --name web -p 8080:8080 -v "$PWD/Caddyfile.ci:/etc/caddy/Caddyfile:ro" scribblescan-web:ci
-          for i in $(seq 20); do curl -fsS http://127.0.0.1:8080/ -o /dev/null && break; sleep 1; done
-          curl -fsS http://127.0.0.1:8080/ | grep -q '<title>ScribbleScan</title>'
-          curl -fsS http://127.0.0.1:8080/scan | grep -q 'ScribbleScan camera'
+          podman run -d --name web -p 3000:3000 -e HOSTNAME=0.0.0.0 scribblescan-web:ci
+          trap 'podman rm -f web >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 30); do curl -fsS http://127.0.0.1:3000/ -o /dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:3000/ | grep -q '<title>ScribbleScan — Spending</title>'
+          curl -fsS http://127.0.0.1:3000/scan | grep -q 'ScribbleScan camera'
+          for path in / /scan /receipts /reconciliation /budgets /spaces /connect; do
+            curl -fsS -H "Content-Security-Policy: script-src 'self' 'nonce-ci-proof'" \
+              "http://127.0.0.1:3000$path" | node -e '
+                let html = "";
+                process.stdin.setEncoding("utf8");
+                process.stdin.on("data", chunk => html += chunk);
+                process.stdin.on("end", () => {
+                  const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(match => match[0]);
+                  if (!scripts.length || scripts.some(tag => !/\bnonce="ci-proof"/.test(tag))) {
+                    console.error("Missing CSP nonce on a script");
+                    process.exit(1);
+                  }
+                });
+              '
+          done

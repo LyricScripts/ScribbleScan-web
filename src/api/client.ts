@@ -133,7 +133,12 @@ const sleep = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
  * server error, always with the same Idempotency-Key, so a flaky network never loses a
  * photo or stores it twice.
  */
-export async function uploadFile(spaceId: string, file: File, waits = RETRY_WAITS_MS): Promise<DocumentOut> {
+export async function uploadFile(
+  spaceId: string,
+  file: File,
+  waits = RETRY_WAITS_MS,
+  docType: "receipt" | "bank_statement" = "receipt",
+): Promise<DocumentOut> {
   const key = crypto.randomUUID();
   for (const wait of waits) {
     if (wait) await sleep(wait);
@@ -141,7 +146,8 @@ export async function uploadFile(spaceId: string, file: File, waits = RETRY_WAIT
     form.append("file", file);
     let r: Response;
     try {
-      r = await request(`/v1/spaces/${spaceId}/documents`, {
+      const suffix = docType === "receipt" ? "" : `?doc_type=${docType}`;
+      r = await request(`/v1/spaces/${spaceId}/documents${suffix}`, {
         method: "POST",
         form,
         headers: { "Idempotency-Key": key },

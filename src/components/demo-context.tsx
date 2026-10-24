@@ -32,7 +32,7 @@ type AppData = {
   updateReceipt: (id: string, updates: Partial<Pick<Receipt, "merchant" | "category" | "amount">>) => void;
   downloadCsv: () => void;
   refresh: () => Promise<void>;
-  upload: (spaceId: string, file: File) => Promise<DocumentOut>;
+  upload: (spaceId: string, file: File, docType?: "receipt" | "bank_statement") => Promise<DocumentOut>;
 };
 
 const colorByCategory: Record<string, string> = Object.fromEntries(sampleCategories.map((category) => [category.name.toLowerCase(), category.color]));
@@ -180,9 +180,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     setData((current) => ({ ...current, receipts: current.receipts.map((receipt) => receipt.id === id ? { ...receipt, ...updates } : receipt) }));
   }, []);
 
-  const upload = useCallback(async (spaceId: string, file: File) => {
+  const upload = useCallback(async (spaceId: string, file: File, docType: "receipt" | "bank_statement" = "receipt") => {
     const { uploadFile } = await import("@/src/api/client");
-    return uploadFile(spaceId, file);
+    return uploadFile(spaceId, file, undefined, docType);
   }, []);
 
   const downloadCsv = useCallback(() => {
