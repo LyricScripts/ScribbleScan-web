@@ -25,8 +25,20 @@ jobs:
       - name: Image builds and serves both pages
         run: |
           podman build -t scribblescan-web:ci .
-          printf ':8080 {\n\troot * /srv/web\n\ttry_files {path} {path}.html /index.html\n\tfile_server\n}\n' > Caddyfile.ci
-          podman run -d --name web -p 8080:8080 -v "$PWD/Caddyfile.ci:/etc/caddy/Caddyfile:ro" scribblescan-web:ci
-          for i in $(seq 20); do curl -fsS http://127.0.0.1:8080/ -o /dev/null && break; sleep 1; done
-          curl -fsS http://127.0.0.1:8080/ | grep -q '<title>ScribbleScan</title>'
-          curl -fsS http://127.0.0.1:8080/scan | grep -q 'ScribbleScan camera'
+          podman run -d --name web -p 3000:3000 scribblescan-web:ci
+          for i in $(seq 20); do curl -fsS http://127.0.0.1:3000/ -o /dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:3000/ | grep -q '<title>ScribbleScan — Spending</title>'
+          curl -fsS http://127.0.0.1:3000/scan | grep -q 'ScribbleScan camera'
+      - name: Every page signs its scripts with the nonce in the request
+        run: |
+          # Caddy sends a Content-Security-Policy with a nonce; Next.js reads it
+          # and signs the scripts it returns. A page served from the build cache
+          # would come back unsigned and the browser would refuse to run it, so
+          # every page has to be checked.
+          for page in / /scan /receipts /budgets /spaces /connect; do
+            body=$(curl -fsS -H "Content-Security-Policy: script-src 'self' 'nonce-testnonce'" "http://127.0.0.1:3000$page")
+            total=$(grep -o '<script[^>]*>' <<<"$body" | wc -l)
+            signed=$(grep -o '<script[^>]*nonce="testnonce"[^>]*>' <<<"$body" | wc -l)
+            test "$total" -gt 0
+            test "$total" -eq "$signed" || { echo "$page: $signed of $total scripts signed"; exit 1; }
+          done
