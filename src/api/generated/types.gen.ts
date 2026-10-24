@@ -426,6 +426,25 @@ export type MonthTotal = {
 };
 
 /**
+ * NotificationOut
+ */
+export type NotificationOut = {
+    id: string;
+    title: string;
+    detail: string;
+    href: string;
+    unread: boolean;
+};
+
+/**
+ * NotificationsOut
+ */
+export type NotificationsOut = {
+    items: Array<NotificationOut>;
+    unread_count: number;
+};
+
+/**
  * OfferCreated
  */
 export type OfferCreated = {
@@ -1451,3 +1470,29 @@ export type QrV1QrPostResponses = {
 };
 
 export type QrV1QrPostResponse = QrV1QrPostResponses[keyof QrV1QrPostResponses];
+
+export type ListNotificationsV1NotificationsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/notifications';
+};
+
+export type ListNotificationsV1NotificationsGetResponses = {
+    200: NotificationsOut;
+};
+
+export type ListNotificationsV1NotificationsGetResponse = ListNotificationsV1NotificationsGetResponses[keyof ListNotificationsV1NotificationsGetResponses];
+
+export type MarkNotificationsReadV1NotificationsReadPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/notifications/read';
+};
+
+export type MarkNotificationsReadV1NotificationsReadPostResponses = {
+    200: NotificationsOut;
+};
+
+export type MarkNotificationsReadV1NotificationsReadPostResponse = MarkNotificationsReadV1NotificationsReadPostResponses[keyof MarkNotificationsReadV1NotificationsReadPostResponses];

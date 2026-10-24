@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { newPage } from "../src/views/shared";
+import { newPage } from "./helpers/page";
 
 describe("newPage", () => {
   beforeEach(() => {

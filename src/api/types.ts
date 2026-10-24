@@ -1,10 +1,13 @@
 // The API's types, generated from its OpenAPI contract (src/api/generated, `npm run api:types`).
 export type {
   ClientConfig,
+  DevToken,
   DocStatus,
   DocumentOut,
   Expenses,
   Issue,
+  NotificationOut,
+  NotificationsOut,
   PairOffer,
   SpaceOut,
   Summary,
