@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { b64url, finish, pkceChallenge } from "../src/oidc";
+import { b64url, finish, login, pkceChallenge } from "../src/oidc";
 
 describe("PKCE", () => {
   it("matches the RFC 7636 example", async () => {
@@ -46,5 +46,28 @@ describe("finish", () => {
     vi.stubGlobal("fetch", fetchMock);
     expect(await finish(cfg)).toEqual({ access_token: "at", expires_in: 300 });
     vi.unstubAllGlobals();
+  });
+});
+
+describe("login", () => {
+  afterEach(() => {
+    sessionStorage.clear();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("passes a phone number as the OIDC login_hint", async () => {
+    const assign = vi.spyOn(window.location, "assign").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ authorization_endpoint: "https://auth.example.com/authorize" })),
+    );
+    const cfg = { issuer: "https://auth.example.com", client_id: "web", scopes: "openid" };
+
+    await login(cfg, { loginHint: "+8801915366317" });
+
+    expect(assign).toHaveBeenCalledOnce();
+    expect(assign.mock.calls[0][0]).toContain("login_hint=%2B8801915366317");
+    expect(assign.mock.calls[0][0]).toContain("code_challenge_method=S256");
   });
 });

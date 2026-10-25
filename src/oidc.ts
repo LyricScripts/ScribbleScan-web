@@ -63,7 +63,10 @@ async function tokenRequest(cfg: OidcConfig, params: Record<string, string>): Pr
 }
 
 /** Go to the provider's sign-in page. `prompt: "create"` opens registration instead. */
-export async function login(cfg: OidcConfig, { prompt }: { prompt?: string } = {}): Promise<void> {
+export async function login(
+  cfg: OidcConfig,
+  { prompt, loginHint }: { prompt?: string; loginHint?: string } = {},
+): Promise<void> {
   const { authorization_endpoint } = await discover(cfg.issuer);
   const verifier = randomString(32);
   const state = randomString(16);
@@ -78,6 +81,7 @@ export async function login(cfg: OidcConfig, { prompt }: { prompt?: string } = {
     code_challenge_method: "S256",
   });
   if (prompt) q.set("prompt", prompt);
+  if (loginHint) q.set("login_hint", loginHint);
   location.assign(`${authorization_endpoint}?${q}`);
 }
 
