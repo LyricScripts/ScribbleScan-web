@@ -111,6 +111,8 @@ export default function ConnectPage() {
   const passwordless = config?.auth === "oidc" && methods.length > 0;
   const hosted = config?.auth === "oidc" && methods.length === 0;
   const available = (provider: Provider) => passwordless && methods.includes(provider);
+  // Dev mode, the hosted fallback and an offline API each handle the email step their own way.
+  const emailAvailable = !passwordless || methods.includes("email");
 
   const leaving = () => store.set(RETURN_TO, destination());
 
@@ -129,7 +131,8 @@ export default function ConnectPage() {
     setError("");
     if (hosted) return goHosted();
     if (!available(provider)) {
-      setError(`${PROVIDER_NAMES[provider]} sign-in isn't set up on this server yet. Continue with email.`);
+      const instead = emailAvailable ? " Continue with email." : "";
+      setError(`${PROVIDER_NAMES[provider]} sign-in isn't set up on this server yet.${instead}`);
       return;
     }
     try {
@@ -149,6 +152,10 @@ export default function ConnectPage() {
   const chooseEmail = () => {
     setError("");
     if (hosted) return goHosted();
+    if (!emailAvailable) {
+      setError("Email sign-in isn't set up on this server yet.");
+      return;
+    }
     setStep({ name: "email" });
   };
 
@@ -237,7 +244,7 @@ export default function ConnectPage() {
               Keep your receipts, budgets and spaces in one clear view.
             </Title>
             <div className="mt-8 space-y-3">
-              <ChoiceButton onClick={chooseEmail} icon={<MailMark />}>
+              <ChoiceButton onClick={chooseEmail} icon={<MailMark />} unavailable={!emailAvailable}>
                 Continue with email
               </ChoiceButton>
               <ChoiceButton
