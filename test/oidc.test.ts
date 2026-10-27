@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { b64url, finish, pkceChallenge } from "../src/oidc";
+import { b64url, begin, finish, login, pkceChallenge } from "../src/oidc";
 
 describe("PKCE", () => {
   it("matches the RFC 7636 example", async () => {
@@ -16,7 +16,7 @@ describe("PKCE", () => {
 describe("finish", () => {
   const cfg = { issuer: "https://auth.example.com", client_id: "web", scopes: "openid" };
   afterEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     history.replaceState(null, "", "/");
   });
 
@@ -25,14 +25,14 @@ describe("finish", () => {
   });
 
   it("rejects a return whose state doesn't match (a forged or stale sign-in)", async () => {
-    sessionStorage.setItem("ss.oidc.pending", JSON.stringify({ verifier: "v", state: "expected" }));
+    localStorage.setItem("ss.oidc.pending", JSON.stringify({ verifier: "v", state: "expected" }));
     history.replaceState(null, "", "/?code=abc&state=attacker");
     await expect(finish(cfg)).rejects.toThrow("sign-in expired");
     expect(location.search).toBe(""); // the code is removed from the address bar either way
   });
 
   it("swaps the code for tokens, sending the PKCE verifier", async () => {
-    sessionStorage.setItem("ss.oidc.pending", JSON.stringify({ verifier: "the-verifier", state: "s1" }));
+    localStorage.setItem("ss.oidc.pending", JSON.stringify({ verifier: "the-verifier", state: "s1" }));
     history.replaceState(null, "", "/?code=abc&state=s1");
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url.endsWith("/.well-known/openid-configuration"))
@@ -46,5 +46,40 @@ describe("finish", () => {
     vi.stubGlobal("fetch", fetchMock);
     expect(await finish(cfg)).toEqual({ access_token: "at", expires_in: 300 });
     vi.unstubAllGlobals();
+  });
+});
+
+describe("begin", () => {
+  afterEach(() => localStorage.clear());
+
+  it("keeps the verifier and gives out only its challenge", async () => {
+    const { code_challenge, state } = await begin();
+    const pending = JSON.parse(localStorage.getItem("ss.oidc.pending") ?? "{}");
+    expect(pending.state).toBe(state);
+    expect(code_challenge).toBe(await pkceChallenge(pending.verifier));
+    expect(code_challenge).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  });
+});
+
+describe("login", () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("goes to the provider with a PKCE challenge", async () => {
+    const assign = vi.spyOn(window.location, "assign").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ authorization_endpoint: "https://auth.example.com/authorize" })),
+    );
+    const cfg = { issuer: "https://auth.example.com", client_id: "web", scopes: "openid" };
+
+    await login(cfg);
+
+    expect(assign).toHaveBeenCalledOnce();
+    expect(assign.mock.calls[0][0]).toContain("code_challenge_method=S256");
+    expect(assign.mock.calls[0][0]).not.toContain("login_hint");
   });
 });
