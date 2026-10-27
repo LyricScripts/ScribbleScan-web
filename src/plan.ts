@@ -39,9 +39,25 @@ export function onUpgradeAsked(listener: (detail: UpgradeRequired) => void): () 
 
 export const scansLeft = (plan: PlanOut) => Math.max(0, plan.scans_limit - plan.scans_used);
 
+const DOC_NAMES: Record<string, string> = {
+  receipt: "receipts",
+  invoice: "invoices",
+  bank_statement: "bank statements",
+};
+
+/** "Receipts, invoices and bank statements", from the types the plan actually includes. */
+export function documentsLabel(docTypes: string[]): string {
+  const order = Object.keys(DOC_NAMES);
+  const names = [...docTypes]
+    .sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99))
+    .map((type) => DOC_NAMES[type] ?? `${type.replaceAll("_", " ")}s`);
+  const text = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : (names[0] ?? "");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /** One line per plan for the comparison: what changes as you move up. */
 export function planFeatures(info: PlanInfo): string[] {
-  const docs = info.doc_types.length > 1 ? "Receipts, invoices and bank statements" : "Receipts";
+  const docs = documentsLabel(info.doc_types);
   return [
     `${info.scans_per_month.toLocaleString("en-IN")} automatic scans a month`,
     info.business_spaces === 0

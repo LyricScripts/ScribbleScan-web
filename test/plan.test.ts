@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, session } from "../src/api/client";
-import { onUpgradeAsked, planFeatures, type UpgradeRequired } from "../src/plan";
+import { documentsLabel, onUpgradeAsked, planFeatures, type UpgradeRequired } from "../src/plan";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -58,5 +58,15 @@ describe("planFeatures", () => {
       "Receipts, invoices and bank statements",
       "CSV and Excel export",
     ]);
+  });
+});
+
+describe("documentsLabel", () => {
+  it("names exactly the plan's document types, in a fixed order", () => {
+    expect(documentsLabel(["receipt"])).toBe("Receipts");
+    expect(documentsLabel(["invoice", "receipt"])).toBe("Receipts and invoices");
+    expect(documentsLabel(["bank_statement", "invoice", "receipt"])).toBe(
+      "Receipts, invoices and bank statements",
+    );
   });
 });
