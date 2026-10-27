@@ -1,11 +1,18 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, isDemoSession, session } from "@/src/api/client";
 import type { ClientConfig, DocumentOut, Expenses, SpaceOut, Summary } from "@/src/api/types";
 import { thisMonth, title } from "@/src/format";
+import {
+  type Category,
+  type Receipt,
+  budgetTotal as sampleBudget,
+  categories as sampleCategories,
+  receipts as sampleReceipts,
+  spentTotal as sampleSpent,
+} from "@/src/lib/demo-data";
 import { store } from "@/src/store";
-import { categories as sampleCategories, receipts as sampleReceipts, spentTotal as sampleSpent, budgetTotal as sampleBudget, type Category, type Receipt } from "@/src/lib/demo-data";
 
 type Space = Pick<SpaceOut, "id" | "name" | "kind" | "currency">;
 type DataSource = "sample" | "connected";
@@ -35,14 +42,26 @@ type AppData = {
   upload: (spaceId: string, file: File) => Promise<DocumentOut>;
 };
 
-const colorByCategory: Record<string, string> = Object.fromEntries(sampleCategories.map((category) => [category.name.toLowerCase(), category.color]));
+const colorByCategory: Record<string, string> = Object.fromEntries(
+  sampleCategories.map((category) => [category.name.toLowerCase(), category.color]),
+);
 
 const sampleSpaces: Space[] = [
   { id: "sample-personal", name: "Personal", kind: "personal", currency: "BDT" },
   { id: "sample-shop", name: "Demo shop", kind: "business", currency: "BDT" },
 ];
 
-type DataState = Omit<AppData, "selectSpace" | "setMonth" | "addSpace" | "saveBudgets" | "updateReceipt" | "downloadCsv" | "refresh" | "upload">;
+type DataState = Omit<
+  AppData,
+  | "selectSpace"
+  | "setMonth"
+  | "addSpace"
+  | "saveBudgets"
+  | "updateReceipt"
+  | "downloadCsv"
+  | "refresh"
+  | "upload"
+>;
 
 const initialData: DataState = {
   source: "sample" as DataSource,
@@ -144,41 +163,73 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     void loadLive();
   }, [loadLive]);
 
-  const selectSpace = useCallback((name: string) => {
-    setData((current) => ({ ...current, activeSpace: name }));
-    if (data.source === "connected") void loadLive(name, data.month);
-  }, [data.month, data.source, loadLive]);
+  const selectSpace = useCallback(
+    (name: string) => {
+      setData((current) => ({ ...current, activeSpace: name }));
+      if (data.source === "connected") void loadLive(name, data.month);
+    },
+    [data.month, data.source, loadLive],
+  );
 
-  const setMonth = useCallback((month: string) => {
-    setData((current) => ({ ...current, month }));
-    if (data.source === "connected") void loadLive(data.activeSpace, month);
-  }, [data.activeSpace, data.source, loadLive]);
+  const setMonth = useCallback(
+    (month: string) => {
+      setData((current) => ({ ...current, month }));
+      if (data.source === "connected") void loadLive(data.activeSpace, month);
+    },
+    [data.activeSpace, data.source, loadLive],
+  );
 
-  const addSpace = useCallback(async (name: string, kind: "personal" | "business" = "business") => {
-    if (data.source === "connected") {
-      await api<SpaceOut>("/v1/spaces", { method: "POST", body: { name, kind, currency: data.currency } });
-      await loadLive(name, data.month);
-      return;
-    }
-    const space: Space = { id: `sample-${crypto.randomUUID()}`, name, kind, currency: "BDT" };
-    setData((current) => ({ ...current, spaces: [...current.spaces, space], activeSpace: name, activeSpaceId: space.id }));
-  }, [data.currency, data.month, data.source, loadLive]);
+  const addSpace = useCallback(
+    async (name: string, kind: "personal" | "business" = "business") => {
+      if (data.source === "connected") {
+        await api<SpaceOut>("/v1/spaces", { method: "POST", body: { name, kind, currency: data.currency } });
+        await loadLive(name, data.month);
+        return;
+      }
+      const space: Space = { id: `sample-${crypto.randomUUID()}`, name, kind, currency: "BDT" };
+      setData((current) => ({
+        ...current,
+        spaces: [...current.spaces, space],
+        activeSpace: name,
+        activeSpaceId: space.id,
+      }));
+    },
+    [data.currency, data.month, data.source, loadLive],
+  );
 
-  const saveBudgets = useCallback(async (budgets: Record<string, number>) => {
-    if (data.source === "connected") {
-      await api(`/v1/spaces/${data.activeSpaceId}/budgets`, { method: "PUT", body: { budgets } });
-      await loadLive(data.activeSpace, data.month);
-      return;
-    }
-    setData((current) => {
-      const categories = current.categories.map((category) => ({ ...category, budget: budgets[category.key] ?? 0 }));
-      return { ...current, categories, budgetTotal: categories.reduce((sum, category) => sum + category.budget, 0) };
-    });
-  }, [data.activeSpace, data.activeSpaceId, data.month, data.source, loadLive]);
+  const saveBudgets = useCallback(
+    async (budgets: Record<string, number>) => {
+      if (data.source === "connected") {
+        await api(`/v1/spaces/${data.activeSpaceId}/budgets`, { method: "PUT", body: { budgets } });
+        await loadLive(data.activeSpace, data.month);
+        return;
+      }
+      setData((current) => {
+        const categories = current.categories.map((category) => ({
+          ...category,
+          budget: budgets[category.key] ?? 0,
+        }));
+        return {
+          ...current,
+          categories,
+          budgetTotal: categories.reduce((sum, category) => sum + category.budget, 0),
+        };
+      });
+    },
+    [data.activeSpace, data.activeSpaceId, data.month, data.source, loadLive],
+  );
 
-  const updateReceipt = useCallback((id: string, updates: Partial<Pick<Receipt, "merchant" | "category" | "amount">>) => {
-    setData((current) => ({ ...current, receipts: current.receipts.map((receipt) => receipt.id === id ? { ...receipt, ...updates } : receipt) }));
-  }, []);
+  const updateReceipt = useCallback(
+    (id: string, updates: Partial<Pick<Receipt, "merchant" | "category" | "amount">>) => {
+      setData((current) => ({
+        ...current,
+        receipts: current.receipts.map((receipt) =>
+          receipt.id === id ? { ...receipt, ...updates } : receipt,
+        ),
+      }));
+    },
+    [],
+  );
 
   const upload = useCallback(async (spaceId: string, file: File) => {
     const { uploadFile } = await import("@/src/api/client");
@@ -188,13 +239,25 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const downloadCsv = useCallback(() => {
     const rows: (string | number)[][] = [
       ["Date", "Merchant", "Category", "Amount", "Status"],
-      ...data.receipts.map((receipt) => [receipt.date, receipt.merchant, receipt.category, receipt.amount, receipt.status]),
+      ...data.receipts.map((receipt) => [
+        receipt.date,
+        receipt.merchant,
+        receipt.category,
+        receipt.amount,
+        receipt.status,
+      ]),
     ];
-    const csv = rows.map((row) => row.map((value) => {
-      const raw = String(value);
-      const safe = /^[=+@\t\r]/.test(raw) ? `'${raw}` : raw;
-      return `"${safe.replaceAll('"', '""')}"`;
-    }).join(",")).join("\r\n");
+    const csv = rows
+      .map((row) =>
+        row
+          .map((value) => {
+            const raw = String(value);
+            const safe = /^[=+@\t\r]/.test(raw) ? `'${raw}` : raw;
+            return `"${safe.replaceAll('"', '""')}"`;
+          })
+          .join(","),
+      )
+      .join("\r\n");
     const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -206,17 +269,20 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     window.setTimeout(() => URL.revokeObjectURL(url), 2000);
   }, [data.activeSpace, data.month, data.receipts]);
 
-  const value = useMemo<AppData>(() => ({
-    ...data,
-    selectSpace,
-    setMonth,
-    addSpace,
-    saveBudgets,
-    updateReceipt,
-    downloadCsv,
-    refresh: () => loadLive(data.activeSpace, data.month),
-    upload,
-  }), [data, selectSpace, setMonth, addSpace, saveBudgets, updateReceipt, downloadCsv, loadLive, upload]);
+  const value = useMemo<AppData>(
+    () => ({
+      ...data,
+      selectSpace,
+      setMonth,
+      addSpace,
+      saveBudgets,
+      updateReceipt,
+      downloadCsv,
+      refresh: () => loadLive(data.activeSpace, data.month),
+      upload,
+    }),
+    [data, selectSpace, setMonth, addSpace, saveBudgets, updateReceipt, downloadCsv, loadLive, upload],
+  );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
 }

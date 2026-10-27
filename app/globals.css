@@ -79,9 +79,7 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(1000px 520px at 78% -12%, rgb(30 78 66 / 16%), transparent 64%),
-    var(--paper);
+  background: radial-gradient(1000px 520px at 78% -12%, rgb(30 78 66 / 16%), transparent 64%), var(--paper);
   color: var(--ink);
   font-family: var(--font-hind);
   -webkit-font-smoothing: antialiased;
