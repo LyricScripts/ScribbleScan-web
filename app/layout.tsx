@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   applicationName: "ScribbleScan",
 };
 
+// Every page fetches its data in the browser, so rendering them ahead of time
+// buys nothing. Rendering them per request is what lets the server add a
+// fresh nonce to its scripts: Next.js only does that when it renders the page,
+// so a page served from the build cache would come without a nonce and the
+// browser would refuse to run it.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
