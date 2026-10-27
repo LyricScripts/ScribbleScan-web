@@ -9,7 +9,13 @@ type UploadStatus = { id: number; name: string; status: string; failed?: boolean
 function deviceLabel(): string {
   const ua = navigator.userAgent;
   const os = /iPhone|iPad/.test(ua) ? "iPhone" : /Android/.test(ua) ? "Android phone" : "Phone";
-  const browser = /CriOS|Chrome/.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : /Firefox/.test(ua) ? "Firefox" : "browser";
+  const browser = /CriOS|Chrome/.test(ua)
+    ? "Chrome"
+    : /Safari/.test(ua)
+      ? "Safari"
+      : /Firefox/.test(ua)
+        ? "Firefox"
+        : "browser";
   return `${browser} on ${os}`;
 }
 
@@ -40,10 +46,12 @@ export default function ScanPage() {
           setMessage("This code is no longer valid. Show a new one and scan again.");
           return;
         }
-        const claim = await response.json() as PairClaim;
+        const claim = (await response.json()) as PairClaim;
         if (cancelled) return;
         setMessage(`Allow this phone on “${claim.shower || "your computer"}”…`);
-        events = new EventSource(`/v1/pair/offers/${claim.offer_id}/events?key=${encodeURIComponent(claim.claimer_key)}`);
+        events = new EventSource(
+          `/v1/pair/offers/${claim.offer_id}/events?key=${encodeURIComponent(claim.claimer_key)}`,
+        );
         events.addEventListener("approved", async () => {
           events?.close();
           const collected = await fetch(`/v1/pair/offers/${claim.offer_id}/collect`, {
@@ -54,17 +62,26 @@ export default function ScanPage() {
             setMessage("Couldn't connect. Scan a new code.");
             return;
           }
-          setGrant(await collected.json() as PairGrant);
+          setGrant((await collected.json()) as PairGrant);
           setMessage("Connected. Photos go straight to ScribbleScan.");
         });
-        events.addEventListener("denied", () => { setMessage("Not allowed."); events?.close(); });
-        events.addEventListener("expired", () => { setMessage("Timed out. Scan again."); events?.close(); });
+        events.addEventListener("denied", () => {
+          setMessage("Not allowed.");
+          events?.close();
+        });
+        events.addEventListener("expired", () => {
+          setMessage("Timed out. Scan again.");
+          events?.close();
+        });
       } catch {
         if (!cancelled) setMessage("Couldn't connect. Check your connection and scan a new code.");
       }
     };
     void connect();
-    return () => { cancelled = true; events?.close(); };
+    return () => {
+      cancelled = true;
+      events?.close();
+    };
   }, []);
 
   const sendFile = async (file: File, id: number) => {
@@ -73,17 +90,21 @@ export default function ScanPage() {
     let status = 0;
     for (const wait of RETRY_WAITS_MS) {
       if (wait) {
-        setUploads((current) => current.map((item) => item.id === id ? { ...item, status: "Retrying…" } : item));
+        setUploads((current) =>
+          current.map((item) => (item.id === id ? { ...item, status: "Retrying…" } : item)),
+        );
         await new Promise((resolve) => setTimeout(resolve, wait));
       }
       const body = new FormData();
       body.append("file", file);
       try {
-        status = (await fetch(`/v1/spaces/${grant.space_id}/documents`, {
-          method: "POST",
-          body,
-          headers: { Authorization: `Bearer ${grant.token}`, "Idempotency-Key": key },
-        })).status;
+        status = (
+          await fetch(`/v1/spaces/${grant.space_id}/documents`, {
+            method: "POST",
+            body,
+            headers: { Authorization: `Bearer ${grant.token}`, "Idempotency-Key": key },
+          })
+        ).status;
       } catch {
         status = 0;
         continue;
@@ -91,7 +112,13 @@ export default function ScanPage() {
       if (status < 500) break;
     }
     const ok = status >= 200 && status < 300;
-    setUploads((current) => current.map((item) => item.id === id ? { ...item, status: ok ? "Sent" : status === 401 ? "Disconnected" : "Failed", failed: !ok } : item));
+    setUploads((current) =>
+      current.map((item) =>
+        item.id === id
+          ? { ...item, status: ok ? "Sent" : status === 401 ? "Disconnected" : "Failed", failed: !ok }
+          : item,
+      ),
+    );
   };
 
   const onFiles = (files: FileList | null) => {
@@ -107,13 +134,36 @@ export default function ScanPage() {
   return (
     <main className="mx-auto min-h-screen max-w-md px-4 py-8 text-center">
       <h1 className="text-xl font-bold text-ink">ScribbleScan camera</h1>
-      <p aria-live="polite" className="mt-2 min-h-7 text-quiet">{message}</p>
+      <p aria-live="polite" className="mt-2 min-h-7 text-quiet">
+        {message}
+      </p>
       {grant ? (
         <>
-          <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={(event) => onFiles(event.currentTarget.files)} />
-          <button type="button" onClick={() => input.current?.click()} className="mt-7 w-full rounded-2xl bg-ledger-button px-5 py-8 text-xl font-semibold text-white hover:bg-[#0a5948]">Take photo</button>
+          <input
+            ref={input}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(event) => onFiles(event.currentTarget.files)}
+          />
+          <button
+            type="button"
+            onClick={() => input.current?.click()}
+            className="mt-7 w-full rounded-2xl bg-ledger-button px-5 py-8 text-xl font-semibold text-white hover:bg-[#0a5948]"
+          >
+            Take photo
+          </button>
           <ul className="mt-5 space-y-2 text-left">
-            {uploads.map((upload) => <li key={upload.id} className="flex justify-between gap-3 rounded-xl border border-line bg-card px-3 py-2.5 text-sm"><span>{upload.name}</span><span className={upload.failed ? "text-stamp" : "text-ledger"}>{upload.status}</span></li>)}
+            {uploads.map((upload) => (
+              <li
+                key={upload.id}
+                className="flex justify-between gap-3 rounded-xl border border-line bg-card px-3 py-2.5 text-sm"
+              >
+                <span>{upload.name}</span>
+                <span className={upload.failed ? "text-stamp" : "text-ledger"}>{upload.status}</span>
+              </li>
+            ))}
           </ul>
         </>
       ) : null}
