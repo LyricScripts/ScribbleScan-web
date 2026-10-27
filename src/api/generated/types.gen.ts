@@ -125,6 +125,10 @@ export type ClientConfig = {
      * Scopes
      */
     scopes?: string | null;
+    /**
+     * Login Methods
+     */
+    login_methods?: Array<'email' | 'google' | 'apple'>;
 };
 
 /**
@@ -320,6 +324,60 @@ export type DocumentPatch = {
 };
 
 /**
+ * EmailCodeCheck
+ */
+export type EmailCodeCheck = {
+    /**
+     * Flow
+     */
+    flow: string;
+    /**
+     * Code
+     */
+    code: string;
+};
+
+/**
+ * EmailCodeIn
+ */
+export type EmailCodeIn = {
+    /**
+     * Code Challenge
+     */
+    code_challenge: string;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Email
+     */
+    email: string;
+};
+
+/**
+ * EmailCodeSent
+ */
+export type EmailCodeSent = {
+    /**
+     * Flow
+     */
+    flow: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Expires In
+     */
+    expires_in: number;
+    /**
+     * Resend After
+     */
+    resend_after: number;
+};
+
+/**
  * Expenses
  */
 export type Expenses = {
@@ -429,10 +487,25 @@ export type MonthTotal = {
  * NotificationOut
  */
 export type NotificationOut = {
+    /**
+     * Id
+     */
     id: string;
+    /**
+     * Title
+     */
     title: string;
+    /**
+     * Detail
+     */
     detail: string;
+    /**
+     * Href
+     */
     href: string;
+    /**
+     * Unread
+     */
     unread: boolean;
 };
 
@@ -440,7 +513,13 @@ export type NotificationOut = {
  * NotificationsOut
  */
 export type NotificationsOut = {
+    /**
+     * Items
+     */
     items: Array<NotificationOut>;
+    /**
+     * Unread Count
+     */
     unread_count: number;
 };
 
@@ -529,6 +608,44 @@ export type PairOffer = {
 };
 
 /**
+ * ProviderIn
+ */
+export type ProviderIn = {
+    /**
+     * Code Challenge
+     */
+    code_challenge: string;
+    /**
+     * State
+     */
+    state: string;
+    /**
+     * Provider
+     */
+    provider: 'google' | 'apple';
+};
+
+/**
+ * ProviderReturn
+ *
+ * What Zitadel appended to the return URL after Google or Apple.
+ */
+export type ProviderReturn = {
+    /**
+     * Flow
+     */
+    flow: string;
+    /**
+     * Intent Id
+     */
+    intent_id: string;
+    /**
+     * Intent Token
+     */
+    intent_token: string;
+};
+
+/**
  * QrIn
  */
 export type QrIn = {
@@ -536,6 +653,18 @@ export type QrIn = {
      * Data
      */
     data: string;
+};
+
+/**
+ * Redirect
+ *
+ * Send the browser here next.
+ */
+export type Redirect = {
+    /**
+     * Url
+     */
+    url: string;
 };
 
 /**
@@ -648,6 +777,38 @@ export type ValidationError = {
         [key: string]: unknown;
     };
 };
+
+export type ListNotificationsV1NotificationsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/notifications';
+};
+
+export type ListNotificationsV1NotificationsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: NotificationsOut;
+};
+
+export type ListNotificationsV1NotificationsGetResponse = ListNotificationsV1NotificationsGetResponses[keyof ListNotificationsV1NotificationsGetResponses];
+
+export type MarkNotificationsReadV1NotificationsReadPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/notifications/read';
+};
+
+export type MarkNotificationsReadV1NotificationsReadPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NotificationsOut;
+};
+
+export type MarkNotificationsReadV1NotificationsReadPostResponse = MarkNotificationsReadV1NotificationsReadPostResponses[keyof MarkNotificationsReadV1NotificationsReadPostResponses];
 
 export type CreateOfferV1PairOffersPostData = {
     body: CreateOfferIn;
@@ -1471,28 +1632,102 @@ export type QrV1QrPostResponses = {
 
 export type QrV1QrPostResponse = QrV1QrPostResponses[keyof QrV1QrPostResponses];
 
-export type ListNotificationsV1NotificationsGetData = {
-    body?: never;
+export type EmailCodeV1AuthEmailPostData = {
+    body: EmailCodeIn;
     path?: never;
     query?: never;
-    url: '/v1/notifications';
+    url: '/v1/auth/email';
 };
 
-export type ListNotificationsV1NotificationsGetResponses = {
-    200: NotificationsOut;
+export type EmailCodeV1AuthEmailPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
 };
 
-export type ListNotificationsV1NotificationsGetResponse = ListNotificationsV1NotificationsGetResponses[keyof ListNotificationsV1NotificationsGetResponses];
+export type EmailCodeV1AuthEmailPostError = EmailCodeV1AuthEmailPostErrors[keyof EmailCodeV1AuthEmailPostErrors];
 
-export type MarkNotificationsReadV1NotificationsReadPostData = {
-    body?: never;
+export type EmailCodeV1AuthEmailPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: EmailCodeSent;
+};
+
+export type EmailCodeV1AuthEmailPostResponse = EmailCodeV1AuthEmailPostResponses[keyof EmailCodeV1AuthEmailPostResponses];
+
+export type EmailCodeCheckV1AuthEmailVerifyPostData = {
+    body: EmailCodeCheck;
     path?: never;
     query?: never;
-    url: '/v1/notifications/read';
+    url: '/v1/auth/email/verify';
 };
 
-export type MarkNotificationsReadV1NotificationsReadPostResponses = {
-    200: NotificationsOut;
+export type EmailCodeCheckV1AuthEmailVerifyPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
 };
 
-export type MarkNotificationsReadV1NotificationsReadPostResponse = MarkNotificationsReadV1NotificationsReadPostResponses[keyof MarkNotificationsReadV1NotificationsReadPostResponses];
+export type EmailCodeCheckV1AuthEmailVerifyPostError = EmailCodeCheckV1AuthEmailVerifyPostErrors[keyof EmailCodeCheckV1AuthEmailVerifyPostErrors];
+
+export type EmailCodeCheckV1AuthEmailVerifyPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: Redirect;
+};
+
+export type EmailCodeCheckV1AuthEmailVerifyPostResponse = EmailCodeCheckV1AuthEmailVerifyPostResponses[keyof EmailCodeCheckV1AuthEmailVerifyPostResponses];
+
+export type ProviderStartV1AuthProviderPostData = {
+    body: ProviderIn;
+    path?: never;
+    query?: never;
+    url: '/v1/auth/provider';
+};
+
+export type ProviderStartV1AuthProviderPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProviderStartV1AuthProviderPostError = ProviderStartV1AuthProviderPostErrors[keyof ProviderStartV1AuthProviderPostErrors];
+
+export type ProviderStartV1AuthProviderPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: Redirect;
+};
+
+export type ProviderStartV1AuthProviderPostResponse = ProviderStartV1AuthProviderPostResponses[keyof ProviderStartV1AuthProviderPostResponses];
+
+export type ProviderFinishV1AuthProviderFinishPostData = {
+    body: ProviderReturn;
+    path?: never;
+    query?: never;
+    url: '/v1/auth/provider/finish';
+};
+
+export type ProviderFinishV1AuthProviderFinishPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProviderFinishV1AuthProviderFinishPostError = ProviderFinishV1AuthProviderFinishPostErrors[keyof ProviderFinishV1AuthProviderFinishPostErrors];
+
+export type ProviderFinishV1AuthProviderFinishPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: Redirect;
+};
+
+export type ProviderFinishV1AuthProviderFinishPostResponse = ProviderFinishV1AuthProviderFinishPostResponses[keyof ProviderFinishV1AuthProviderFinishPostResponses];

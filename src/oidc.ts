@@ -1,6 +1,11 @@
 // Sign-in with an OIDC provider (Zitadel in production): Authorization Code flow with
 // PKCE, so the browser needs no client secret. The provider redirects back to this page
 // with ?code=...; finish() swaps it for tokens.
+//
+// The sign-in page can also run the sign-in itself (email code, Google, Apple): begin()
+// gives the API the PKCE challenge, and the API hands back the same ?code= redirect.
+
+import { store } from "./store";
 
 export interface OidcConfig {
   issuer: string;
@@ -62,26 +67,36 @@ async function tokenRequest(cfg: OidcConfig, params: Record<string, string>): Pr
   return r.json() as Promise<Tokens>;
 }
 
-/** Go to the provider's sign-in page. `prompt: "create"` opens registration instead. */
-export async function login(
-  cfg: OidcConfig,
-  { prompt, loginHint }: { prompt?: string; loginHint?: string } = {},
-): Promise<void> {
-  const { authorization_endpoint } = await discover(cfg.issuer);
+export interface Pkce {
+  code_challenge: string;
+  state: string;
+}
+
+/**
+ * Start a sign-in: a new verifier and state, kept until the browser comes back. Kept in
+ * localStorage, not sessionStorage, so the link in a sign-in email works in a new tab.
+ */
+export async function begin(): Promise<Pkce> {
   const verifier = randomString(32);
   const state = randomString(16);
-  sessionStorage.setItem(PENDING, JSON.stringify({ verifier, state }));
+  store.set(PENDING, JSON.stringify({ verifier, state }));
+  return { code_challenge: await pkceChallenge(verifier), state };
+}
+
+/** Go to the provider's sign-in page. `prompt: "create"` opens registration instead. */
+export async function login(cfg: OidcConfig, { prompt }: { prompt?: string } = {}): Promise<void> {
+  const { authorization_endpoint } = await discover(cfg.issuer);
+  const { code_challenge, state } = await begin();
   const q = new URLSearchParams({
     response_type: "code",
     client_id: cfg.client_id,
     redirect_uri: redirectUri(),
     scope: cfg.scopes,
     state,
-    code_challenge: await pkceChallenge(verifier),
+    code_challenge,
     code_challenge_method: "S256",
   });
   if (prompt) q.set("prompt", prompt);
-  if (loginHint) q.set("login_hint", loginHint);
   location.assign(`${authorization_endpoint}?${q}`);
 }
 
@@ -90,11 +105,11 @@ export async function finish(cfg: OidcConfig): Promise<Tokens | null> {
   const q = new URLSearchParams(location.search);
   if (!q.has("code") && !q.has("error")) return null;
   history.replaceState(null, "", location.pathname + location.hash); // keep the code out of history
-  const pending = JSON.parse(sessionStorage.getItem(PENDING) ?? "null") as {
+  const pending = JSON.parse(store.get(PENDING) ?? "null") as {
     verifier: string;
     state: string;
   } | null;
-  sessionStorage.removeItem(PENDING);
+  store.set(PENDING, null);
   if (q.has("error")) throw new Error(q.get("error_description") || "sign-in was cancelled");
   const code = q.get("code");
   if (!pending || !code || pending.state !== q.get("state")) throw new Error("sign-in expired; try again");

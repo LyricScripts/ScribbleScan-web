@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
   DEMO_ACCOUNT_EMAIL,
@@ -10,298 +10,420 @@ import {
   session,
   startDemoSession,
 } from "@/src/api/client";
-import type { DevToken } from "@/src/api/generated";
+import type { DevToken, EmailCodeSent, Redirect } from "@/src/api/generated";
 import type { ClientConfig } from "@/src/api/types";
 import * as oidc from "@/src/oidc";
+import { store } from "@/src/store";
+
+// Passwordless sign-in: a code by email, Google, or Apple. The API runs the sign-in with
+// Zitadel and answers with the usual ?code= redirect, which oidc.finish() completes here.
+// Without a login client on the server it falls back to Zitadel's hosted pages; in dev
+// mode the email step signs in directly.
+
+type Provider = "google" | "apple";
+type Step =
+  | { name: "choose" }
+  | { name: "email" }
+  | { name: "code"; flow: string; email: string; resendAt: number }
+  | { name: "busy"; note: string };
+
+const RETURN_TO = "ss.returnTo";
+const PROVIDER_NAMES: Record<Provider, string> = { google: "Google", apple: "Apple" };
 
 export default function ConnectPage() {
   const [config, setConfig] = useState<ClientConfig | null>(null);
+  const [step, setStep] = useState<Step>({ name: "busy", note: "Checking the connection…" });
   const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [phoneFormOpen, setPhoneFormOpen] = useState(false);
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
-  const [ready, setReady] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const heading = useRef<HTMLHeadingElement>(null);
 
   const destination = useCallback(() => {
-    const requested = new URLSearchParams(window.location.search).get("returnTo");
+    const requested = new URLSearchParams(window.location.search).get("returnTo") ?? store.get(RETURN_TO);
+    store.set(RETURN_TO, null);
     return requested?.startsWith("/") && !requested.startsWith("//") ? requested : "/";
   }, []);
 
   useEffect(() => {
+    const go = (url: string) => {
+      setStep({ name: "busy", note: "Signing you in…" });
+      window.location.assign(url);
+    };
+    const failed = (cause: unknown) => {
+      setError(cause instanceof Error ? cause.message : "Couldn't sign in. Try again.");
+      setStep({ name: "choose" });
+    };
     void api<ClientConfig>("/v1/config")
       .then(async (clientConfig) => {
         session.config = clientConfig;
         setConfig(clientConfig);
+        const q = new URLSearchParams(window.location.search);
+        const flow = q.get("flow");
+        if (flow) {
+          // The link in a sign-in email, or the way back from Google or Apple.
+          history.replaceState(null, "", window.location.pathname);
+          if (q.get("code")) {
+            setStep({ name: "busy", note: "Checking your code…" });
+            const next = await api<Redirect>("/v1/auth/email/verify", {
+              method: "POST",
+              body: { flow, code: q.get("code") },
+            });
+            return go(next.url);
+          }
+          if (q.get("id") && q.get("token")) {
+            setStep({ name: "busy", note: "Signing you in…" });
+            const next = await api<Redirect>("/v1/auth/provider/finish", {
+              method: "POST",
+              body: { flow, intent_id: q.get("id"), intent_token: q.get("token") },
+            });
+            return go(next.url);
+          }
+          throw new Error("Sign-in was cancelled. Try again.");
+        }
         const oidcSettings = oidcConfig();
         if (oidcSettings) {
           const tokens = await oidc.finish(oidcSettings);
           if (tokens) saveTokens(tokens);
         }
-        if (session.token || isDemoSession()) window.location.assign(destination());
-        setReady(true);
+        if (session.token || isDemoSession()) return window.location.assign(destination());
+        setStep({ name: "choose" });
       })
-      .catch(() => {
+      .catch((cause) => {
+        if (session.config) return failed(cause);
         setError(`Couldn't reach the API. You can still preview the app with ${DEMO_ACCOUNT_EMAIL}.`);
-        setReady(true);
+        setStep({ name: "choose" });
       });
   }, [destination]);
 
-  const signInDev = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  // Move focus to each step's heading, so keyboard and screen reader users follow along.
+  useEffect(() => {
+    if (step.name !== "busy") heading.current?.focus();
+  }, [step.name]);
+
+  useEffect(() => {
+    if (step.name !== "code") return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [step.name]);
+
+  const methods = config?.login_methods ?? [];
+  const passwordless = config?.auth === "oidc" && methods.length > 0;
+  const hosted = config?.auth === "oidc" && methods.length === 0;
+  const available = (provider: Provider) => passwordless && methods.includes(provider);
+
+  const leaving = () => store.set(RETURN_TO, destination());
+
+  const goHosted = () => {
+    const settings = oidcConfig();
+    if (!settings) return;
+    leaving();
+    setStep({ name: "busy", note: "Taking you to sign in…" });
+    void oidc.login(settings).catch(() => {
+      setError("Couldn't reach the sign-in page. Try again.");
+      setStep({ name: "choose" });
+    });
+  };
+
+  const chooseProvider = async (provider: Provider) => {
     setError("");
-    if (startDemoSession(email)) {
+    if (hosted) return goHosted();
+    if (!available(provider)) {
+      setError(`${PROVIDER_NAMES[provider]} sign-in isn't set up on this server yet. Continue with email.`);
+      return;
+    }
+    try {
+      setStep({ name: "busy", note: `Opening ${PROVIDER_NAMES[provider]}…` });
+      leaving();
+      const next = await api<Redirect>("/v1/auth/provider", {
+        method: "POST",
+        body: { provider, ...(await oidc.begin()) },
+      });
+      window.location.assign(next.url);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Couldn't start the sign-in. Try again.");
+      setStep({ name: "choose" });
+    }
+  };
+
+  const chooseEmail = () => {
+    setError("");
+    if (hosted) return goHosted();
+    setStep({ name: "email" });
+  };
+
+  const sendCode = async (address: string) => {
+    setError("");
+    if (startDemoSession(address)) {
       window.location.assign(destination());
       return;
     }
-    if (config?.auth !== "dev") {
+    if (config === null) {
       setError(`Live sign-in needs the API. Use ${DEMO_ACCOUNT_EMAIL} to preview the app.`);
       return;
     }
     try {
-      const response = await fetch("/v1/dev/token", {
+      if (config.auth === "dev") {
+        const token = await api<DevToken>("/v1/dev/token", {
+          method: "POST",
+          body: { email: address.trim() },
+        });
+        saveTokens({ access_token: token.access_token, expires_in: 12 * 3600 });
+        window.location.assign(destination());
+        return;
+      }
+      leaving();
+      const sent = await api<EmailCodeSent>("/v1/auth/email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: { email: address, ...(await oidc.begin()) },
       });
-      if (!response.ok) throw new Error("Couldn't sign in. Check the email address.");
-      const token = (await response.json()) as DevToken;
-      saveTokens({ access_token: token.access_token, expires_in: 12 * 3600 });
-      window.location.assign(destination());
+      setCode("");
+      setStep({
+        name: "code",
+        flow: sent.flow,
+        email: sent.email,
+        resendAt: Date.now() + sent.resend_after * 1000,
+      });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Couldn't sign in. Try again.");
+      setError(cause instanceof Error ? cause.message : "Couldn't send a code. Try again.");
     }
   };
 
-  const login = (prompt?: string, loginHint?: string) => {
-    const settings = oidcConfig();
-    if (settings)
-      void oidc
-        .login(settings, { prompt, loginHint })
-        .catch(() => setError("Couldn't reach the sign-in page. Try again."));
-  };
-
-  const loginWithProvider = (provider: "Google" | "Microsoft") => {
-    if (!oidcConfig()) {
-      setError(`${provider} sign-in will be available when an identity provider is configured.`);
-      return;
-    }
-    setError("");
-    login();
-  };
-
-  const signInWithPhone = (event: FormEvent<HTMLFormElement>) => {
+  const submitEmail = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!oidcConfig()) {
-      setError("Phone sign-in will be available when an identity provider is configured.");
-      return;
-    }
-    setError("");
-    login(undefined, phoneNumber.trim());
+    void sendCode(email);
   };
+
+  const submitCode = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (step.name !== "code") return;
+    setError("");
+    const current = step;
+    try {
+      setStep({ name: "busy", note: "Checking your code…" });
+      const next = await api<Redirect>("/v1/auth/email/verify", {
+        method: "POST",
+        body: { flow: current.flow, code: code.trim() },
+      });
+      window.location.assign(next.url);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "Couldn't check the code. Try again.";
+      setError(message.charAt(0).toUpperCase() + message.slice(1));
+      setStep(/start again/.test(message) ? { name: "email" } : current);
+    }
+  };
+
+  const resendIn = step.name === "code" ? Math.max(0, Math.ceil((step.resendAt - now) / 1000)) : 0;
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden px-5 py-6 sm:px-8 sm:py-8">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-12 h-72 w-[42rem] max-w-[90vw] -translate-x-1/2 rounded-full bg-ledger/[0.07] blur-3xl"
-      />
-      <header className="relative flex items-center gap-3">
+    <main className="flex min-h-screen flex-col px-4 py-6 sm:px-8 sm:py-8">
+      <header className="flex items-center gap-3">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--brand-tile)] text-base font-bold text-[var(--brand-ink)]">
           S
         </span>
         <span className="text-base font-semibold tracking-tight text-ink">ScribbleScan</span>
       </header>
 
-      <section className="relative mx-auto flex w-full max-w-[27.5rem] flex-1 flex-col justify-center py-14 text-center">
-        <p className="text-sm font-medium text-ledger">Receipts and spending, together</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-          Sign in to ScribbleScan
-        </h1>
-        <p className="mx-auto mt-3 max-w-sm text-base leading-7 text-quiet">
-          Keep your purchases, budgets, and spaces in one clear view.
-        </p>
-        <div aria-hidden="true" className="mx-auto mt-7 flex h-px w-28 overflow-hidden bg-line">
-          <span className="w-9 bg-ledger" />
-        </div>
-
-        {!ready ? (
-          <p role="status" className="mt-8 text-sm text-quiet">
-            Checking the connection…
+      <section className="mx-auto flex w-full max-w-[25rem] flex-1 flex-col justify-center py-12">
+        {step.name === "busy" ? (
+          <p role="status" className="text-center text-base text-quiet">
+            {step.note}
           </p>
         ) : null}
-        {ready && (config?.auth === "dev" || config === null) ? (
-          <form onSubmit={(event) => void signInDev(event)} className="mt-8 space-y-3 text-left">
-            <label htmlFor="email" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Email address"
-              className="w-full rounded-full border border-line bg-card px-5 py-3 text-base text-ink outline-none transition placeholder:text-quiet focus:border-ledger"
-            />
-            <button
-              type="submit"
-              className="w-full rounded-full bg-ledger-button px-5 py-3 font-semibold text-white transition hover:bg-[#0a5948]"
-            >
-              Continue
-            </button>
-            <p className="px-1 text-center text-sm text-quiet">
-              For the sample account, use {DEMO_ACCOUNT_EMAIL}.
-            </p>
-          </form>
-        ) : null}
-        {ready && config?.auth === "oidc" ? (
-          <div className="mt-8 space-y-3">
-            <button
-              type="button"
-              onClick={() => login()}
-              className="w-full rounded-full bg-ledger-button px-5 py-3 font-semibold text-white transition hover:bg-[#0a5948]"
-            >
-              Continue
-            </button>
-            <button
-              type="button"
-              onClick={() => login("create")}
-              className="w-full rounded-full border border-line bg-card px-5 py-3 font-semibold text-ink transition hover:border-ledger hover:bg-raised"
-            >
-              Create an account
-            </button>
-          </div>
+
+        {step.name === "choose" ? (
+          <>
+            <Title headingRef={heading} title="Log in or sign up">
+              Keep your receipts, budgets and spaces in one clear view.
+            </Title>
+            <div className="mt-8 space-y-3">
+              <ChoiceButton onClick={chooseEmail} icon={<MailMark />}>
+                Continue with email
+              </ChoiceButton>
+              <ChoiceButton
+                onClick={() => void chooseProvider("google")}
+                icon={<GoogleMark />}
+                unavailable={!hosted && !available("google")}
+              >
+                Continue with Google
+              </ChoiceButton>
+              <ChoiceButton
+                onClick={() => void chooseProvider("apple")}
+                icon={<AppleMark />}
+                unavailable={!hosted && !available("apple")}
+              >
+                Continue with Apple
+              </ChoiceButton>
+            </div>
+          </>
         ) : null}
 
-        {ready ? (
+        {step.name === "email" ? (
           <>
-            <div className="my-6 flex items-center gap-4 text-xs font-medium uppercase tracking-[0.14em] text-quiet">
-              <span className="h-px flex-1 bg-line" />
-              <span>or continue with</span>
-              <span className="h-px flex-1 bg-line" />
-            </div>
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => loginWithProvider("Google")}
-                className="flex w-full items-center justify-center gap-3 rounded-full border border-line bg-card px-5 py-3 font-medium text-ink transition hover:border-ledger hover:bg-raised"
-              >
-                <GoogleMark />
-                Continue with Google
+            <Title headingRef={heading} title="Continue with email">
+              We'll send you a code to sign in. No password needed.
+            </Title>
+            <form onSubmit={submitEmail} className="mt-8 space-y-3">
+              <label htmlFor="email" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="Email address"
+                className={FIELD}
+              />
+              <button type="submit" className={PRIMARY}>
+                Continue
               </button>
-              <button
-                type="button"
-                onClick={() => loginWithProvider("Microsoft")}
-                className="flex w-full items-center justify-center gap-3 rounded-full border border-line bg-card px-5 py-3 font-medium text-ink transition hover:border-ledger hover:bg-raised"
-              >
-                <MicrosoftMark />
-                Continue with Microsoft
+              <button type="button" onClick={() => setStep({ name: "choose" })} className={LINK}>
+                Back
               </button>
-              <button
-                type="button"
-                aria-expanded={phoneFormOpen}
-                aria-controls="phone-sign-in-form"
-                onClick={() => {
-                  setPhoneFormOpen((open) => !open);
-                  setError("");
-                }}
-                className="flex w-full items-center justify-center gap-3 rounded-full border border-line bg-card px-5 py-3 font-medium text-ink transition hover:border-ledger hover:bg-raised"
-              >
-                <PhoneMark />
-                Continue with phone
-              </button>
-              {phoneFormOpen ? (
-                <form id="phone-sign-in-form" onSubmit={signInWithPhone} className="space-y-3 pt-1 text-left">
-                  <label htmlFor="phone-number" className="sr-only">
-                    Phone number
-                  </label>
-                  <input
-                    id="phone-number"
-                    type="tel"
-                    required
-                    autoComplete="tel"
-                    value={phoneNumber}
-                    onChange={(event) => setPhoneNumber(event.target.value)}
-                    placeholder="Phone number, including country code"
-                    className="w-full rounded-full border border-line bg-card px-5 py-3 text-base text-ink outline-none transition placeholder:text-quiet focus:border-ledger"
-                  />
-                  <button
-                    type="submit"
-                    className="w-full rounded-full bg-ledger-button px-5 py-3 font-semibold text-white transition hover:bg-[#0a5948]"
-                  >
-                    Continue with phone
-                  </button>
-                </form>
-              ) : null}
-            </div>
-            {config?.auth === "oidc" ? (
-              <p className="mt-3 text-xs leading-5 text-quiet">
-                Google and Microsoft use your configured identity provider. Phone sign-in passes your number
-                as a sign-in hint.
+            </form>
+            {config?.auth === "dev" ? (
+              <p className="mt-4 text-center text-xs leading-5 text-quiet">
+                Development sign-in: any email signs in at once, no code. For the sample account, use{" "}
+                {DEMO_ACCOUNT_EMAIL}.
               </p>
             ) : null}
           </>
         ) : null}
 
-        <div className="my-6 flex items-center gap-4 text-xs font-medium uppercase tracking-[0.14em] text-quiet">
-          <span className="h-px flex-1 bg-line" />
-          <span>or</span>
-          <span className="h-px flex-1 bg-line" />
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            startDemoSession(DEMO_ACCOUNT_EMAIL);
-            window.location.assign(destination());
-          }}
-          className="w-full rounded-full border border-line bg-transparent px-5 py-3 font-medium text-ink transition hover:border-ledger hover:bg-card"
-        >
-          Preview the sample account
-        </button>
+        {step.name === "code" ? (
+          <>
+            <Title headingRef={heading} title="Check your inbox">
+              Enter the code we sent to <span className="font-medium text-ink">{step.email}</span>, or open
+              the link in that email.
+            </Title>
+            <form onSubmit={(event) => void submitCode(event)} className="mt-8 space-y-3">
+              <label htmlFor="code" className="sr-only">
+                Code
+              </label>
+              <input
+                id="code"
+                required
+                autoComplete="one-time-code"
+                autoCapitalize="characters"
+                spellCheck={false}
+                minLength={4}
+                maxLength={12}
+                value={code}
+                onChange={(event) => setCode(event.target.value.toUpperCase())}
+                placeholder="Code"
+                className={`${FIELD} text-center font-semibold tracking-[0.3em] placeholder:font-normal placeholder:tracking-normal`}
+              />
+              <button type="submit" className={PRIMARY}>
+                Continue
+              </button>
+            </form>
+            <div className="mt-4 flex flex-col items-center gap-1 text-sm">
+              <button
+                type="button"
+                disabled={resendIn > 0}
+                onClick={() => void sendCode(step.email)}
+                className="rounded-full px-3 py-1.5 font-medium text-ledger transition hover:underline disabled:cursor-default disabled:text-quiet disabled:no-underline"
+              >
+                {resendIn > 0 ? `Resend email in ${resendIn}s` : "Resend email"}
+              </button>
+              <button type="button" onClick={() => setStep({ name: "email" })} className={LINK}>
+                Use a different email
+              </button>
+            </div>
+          </>
+        ) : null}
 
         {error ? (
           <p
             role="alert"
-            className="mt-4 rounded-xl border border-amber/20 bg-amber-soft px-4 py-3 text-left text-sm text-amber"
+            className="mt-5 rounded-xl border border-amber/20 bg-amber-soft px-4 py-3 text-left text-sm text-amber"
           >
             {error}
           </p>
         ) : null}
-        {ready && !config && !error ? (
-          <p role="alert" className="mt-4 text-sm text-quiet">
-            Sign in is unavailable while the API is offline.
+
+        {step.name === "choose" ? (
+          <p className="mt-8 text-center text-sm text-quiet">
+            Just looking?{" "}
+            <button
+              type="button"
+              onClick={() => {
+                startDemoSession(DEMO_ACCOUNT_EMAIL);
+                window.location.assign(destination());
+              }}
+              className="rounded font-medium text-ink underline-offset-4 hover:underline"
+            >
+              Preview the sample account
+            </button>
           </p>
         ) : null}
-        <p className="mt-5 text-xs leading-5 text-quiet">
-          Development sign-in is for local use. Production sign-in uses your configured identity provider.
-        </p>
-      </section>
-
-      <section
-        aria-label="ScribbleScan features"
-        className="relative mx-auto grid w-full max-w-5xl gap-3 sm:grid-cols-3"
-      >
-        <article className="rounded-xl border border-line bg-card/70 p-4 sm:p-5">
-          <p className="text-sm font-semibold text-ink">Receipts</p>
-          <p className="mt-1 text-sm leading-5 text-quiet">
-            Capture purchases and review the details read from each receipt.
-          </p>
-        </article>
-        <article className="rounded-xl border border-line bg-card/70 p-4 sm:p-5">
-          <p className="text-sm font-semibold text-ink">Budgets</p>
-          <p className="mt-1 text-sm leading-5 text-quiet">
-            Set monthly limits and follow spending by category.
-          </p>
-        </article>
-        <article className="rounded-xl border border-line bg-card/70 p-4 sm:p-5">
-          <p className="text-sm font-semibold text-ink">Spaces</p>
-          <p className="mt-1 text-sm leading-5 text-quiet">
-            Keep personal and business records in separate spaces.
-          </p>
-        </article>
       </section>
     </main>
+  );
+}
+
+const FIELD =
+  "w-full rounded-full border border-line bg-transparent px-5 py-3.5 text-base text-ink outline-none transition placeholder:text-quiet focus:border-ledger";
+const PRIMARY =
+  "w-full rounded-full bg-[var(--brand-tile)] px-5 py-3.5 text-base font-semibold text-[var(--brand-ink)] transition hover:opacity-90";
+const LINK = "w-full rounded-full px-5 py-2 text-sm font-medium text-quiet transition hover:text-ink";
+
+function Title({
+  title,
+  children,
+  headingRef,
+}: {
+  title: string;
+  children: ReactNode;
+  headingRef: React.RefObject<HTMLHeadingElement | null>;
+}) {
+  return (
+    <div className="text-center">
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-3xl font-semibold tracking-tight text-ink outline-none"
+      >
+        {title}
+      </h1>
+      <p className="mx-auto mt-3 max-w-sm text-base leading-7 text-quiet">{children}</p>
+    </div>
+  );
+}
+
+function ChoiceButton({
+  onClick,
+  icon,
+  unavailable = false,
+  children,
+}: {
+  onClick: () => void;
+  icon: ReactNode;
+  unavailable?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-disabled={unavailable || undefined}
+      className={`flex w-full items-center justify-center gap-3 rounded-full border border-line bg-transparent px-5 py-3.5 text-base font-medium text-ink transition hover:bg-raised ${unavailable ? "opacity-50" : ""}`}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function MailMark() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-5 w-5 text-quiet">
+      <rect x="2.5" y="4.5" width="15" height="11" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="m3 5.5 7 5.5 7-5.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -325,27 +447,10 @@ function GoogleMark() {
   );
 }
 
-function MicrosoftMark() {
+function AppleMark() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 18 18" className="h-[18px] w-[18px]">
-      <path fill="#F25022" d="M1 1h7.2v7.2H1z" />
-      <path fill="#7FBA00" d="M9.8 1H17v7.2H9.8z" />
-      <path fill="#00A4EF" d="M1 9.8h7.2V17H1z" />
-      <path fill="#FFB900" d="M9.8 9.8H17V17H9.8z" />
-    </svg>
-  );
-}
-
-function PhoneMark() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-5 w-5">
-      <path
-        d="M6.2 2.5H4.1c-.9 0-1.6.7-1.5 1.6.7 7.1 6.2 12.6 13.3 13.3.9.1 1.6-.6 1.6-1.5v-2.1c0-.7-.5-1.3-1.2-1.5l-2.1-.5c-.6-.1-1.2.1-1.6.5l-.9.9a13.7 13.7 0 0 1-4.8-4.8l.9-.9c.4-.4.6-1 .5-1.6l-.5-2.1c-.2-.7-.8-1.2-1.5-1.2Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg aria-hidden="true" viewBox="0 0 18 18" fill="currentColor" className="h-[18px] w-[18px] text-quiet">
+      <path d="M14.94 9.56c-.02-2.02 1.65-3 1.73-3.04-.94-1.38-2.41-1.57-2.93-1.59-1.25-.13-2.44.73-3.07.73-.64 0-1.61-.71-2.65-.69-1.36.02-2.62.79-3.32 2.01-1.42 2.46-.36 6.1 1.02 8.1.68.98 1.48 2.07 2.53 2.04 1.02-.04 1.4-.66 2.63-.66 1.22 0 1.57.66 2.64.64 1.09-.02 1.78-.99 2.45-1.98.77-1.13 1.09-2.23 1.11-2.29-.03-.01-2.12-.81-2.14-3.23ZM12.92 3.62c.56-.68.94-1.62.83-2.56-.81.03-1.79.54-2.37 1.22-.52.6-.98 1.56-.85 2.48.9.07 1.82-.46 2.39-1.14Z" />
     </svg>
   );
 }

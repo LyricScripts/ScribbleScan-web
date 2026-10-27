@@ -1298,6 +1298,174 @@
           }
         }
       }
+    },
+    "/v1/auth/email": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Email Code",
+        "description": "Email a sign-in code. New addresses get an account once the code is entered.",
+        "operationId": "email_code_v1_auth_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailCodeSent"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/email/verify": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Email Code Check",
+        "description": "Check the code; the browser then goes to the returned URL to collect its tokens.",
+        "operationId": "email_code_check_v1_auth_email_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeCheck"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/provider": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Provider Start",
+        "description": "Where to send the browser to sign in with Google or Apple.",
+        "operationId": "provider_start_v1_auth_provider_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/provider/finish": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Provider Finish",
+        "description": "Back from Google or Apple: complete the sign-in.",
+        "operationId": "provider_finish_v1_auth_provider_finish_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderReturn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1501,6 +1669,19 @@
               }
             ],
             "title": "Scopes"
+          },
+          "login_methods": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "email",
+                "google",
+                "apple"
+              ]
+            },
+            "type": "array",
+            "title": "Login Methods",
+            "default": []
           }
         },
         "type": "object",
@@ -1837,6 +2018,87 @@
         "type": "object",
         "title": "DocumentPatch"
       },
+      "EmailCodeCheck": {
+        "properties": {
+          "flow": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Flow"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 16,
+            "minLength": 4,
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flow",
+          "code"
+        ],
+        "title": "EmailCodeCheck"
+      },
+      "EmailCodeIn": {
+        "properties": {
+          "code_challenge": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Code Challenge"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "State"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 320,
+            "minLength": 3,
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code_challenge",
+          "state",
+          "email"
+        ],
+        "title": "EmailCodeIn"
+      },
+      "EmailCodeSent": {
+        "properties": {
+          "flow": {
+            "type": "string",
+            "title": "Flow"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          },
+          "resend_after": {
+            "type": "integer",
+            "title": "Resend After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flow",
+          "email",
+          "expires_in",
+          "resend_after"
+        ],
+        "title": "EmailCodeSent"
+      },
       "Expenses": {
         "properties": {
           "month": {
@@ -2156,6 +2418,69 @@
         "title": "PairOffer",
         "description": "Show qr_url as a QR code. shower_key opens the offer's event stream (/v1/pair/offers/{id}/events)."
       },
+      "ProviderIn": {
+        "properties": {
+          "code_challenge": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Code Challenge"
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "State"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "google",
+              "apple"
+            ],
+            "title": "Provider"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code_challenge",
+          "state",
+          "provider"
+        ],
+        "title": "ProviderIn"
+      },
+      "ProviderReturn": {
+        "properties": {
+          "flow": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Flow"
+          },
+          "intent_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Intent Id"
+          },
+          "intent_token": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Intent Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flow",
+          "intent_id",
+          "intent_token"
+        ],
+        "title": "ProviderReturn",
+        "description": "What Zitadel appended to the return URL after Google or Apple."
+      },
       "QrIn": {
         "properties": {
           "data": {
@@ -2170,6 +2495,20 @@
           "data"
         ],
         "title": "QrIn"
+      },
+      "Redirect": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "Redirect",
+        "description": "Send the browser here next."
       },
       "SpaceIn": {
         "properties": {
