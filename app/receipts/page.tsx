@@ -97,7 +97,7 @@ export default function ReceiptsPage() {
             type="button"
             aria-pressed={filter === name}
             onClick={() => setFilter(name)}
-            className={`shrink-0 rounded-full border px-4 py-1.5 text-sm transition ${filter === name ? "border-ink bg-ink font-semibold text-white" : "border-line bg-card text-quiet hover:text-ink"}`}
+            className={`shrink-0 rounded-full border px-4 py-1.5 text-sm transition ${filter === name ? "border-ink bg-ink font-semibold text-paper" : "border-line bg-card text-quiet hover:text-ink"}`}
           >
             {name}
           </button>
