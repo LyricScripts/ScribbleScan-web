@@ -11,6 +11,7 @@ import * as oidc from "@/src/oidc";
 import { store } from "@/src/store";
 import { ProfileMenu, type AccountNotification } from "@/src/components/profile-menu";
 import { ReceiptUploadDialog } from "@/src/components/receipt-upload-dialog";
+import { UpgradeDialog } from "@/src/components/upgrade-dialog";
 
 type NavItem = { href?: string; label: string; icon: "spending" | "receipts" | "add" | "budgets" | "spaces" };
 
@@ -212,6 +213,7 @@ function AppFrame({ children }: { children: ReactNode }) {
         <Navigation mobile onAddReceipt={openUpload} />
       </div>
       {uploadOpen ? <ReceiptUploadDialog open={uploadOpen} onClose={closeUpload} /> : null}
+      {source === "connected" ? <UpgradeDialog /> : null}
     </div>
   );
 }

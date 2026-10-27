@@ -9,6 +9,8 @@ export type {
   NotificationOut,
   NotificationsOut,
   PairOffer,
+  PlanInfo,
+  PlanOut,
   SpaceOut,
   Summary,
 } from "./generated";

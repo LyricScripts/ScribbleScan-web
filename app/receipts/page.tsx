@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { request } from "@/src/api/client";
+import { apiError, request } from "@/src/api/client";
 import { useDemo } from "@/src/components/demo-context";
 import { dateLabel, money } from "@/src/lib/demo-data";
 import { monthLabel } from "@/src/format";
@@ -30,7 +30,7 @@ export default function ReceiptsPage() {
     setExportError("");
     try {
       const response = await request(`/v1/spaces/${activeSpaceId}/export?month=${month}&format=xlsx`);
-      if (!response.ok) throw new Error("Export failed. Try again.");
+      if (!response.ok) throw response.status === 402 ? await apiError(response) : new Error("Export failed. Try again.");
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");

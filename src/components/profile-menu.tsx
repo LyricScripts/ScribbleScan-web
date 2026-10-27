@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { store } from "@/src/store";
+import { PlanSummary } from "@/src/components/plan-summary";
 
 type Theme = "dark" | "light";
 type Panel = "menu" | "settings" | "appearance" | "subscription";
@@ -198,13 +199,7 @@ export function ProfileMenu({ email, preview, space, currency, notifications, on
                     {(["dark", "light"] as const).map((option) => <button key={option} type="button" aria-pressed={theme === option} onClick={() => chooseTheme(option)} className={`rounded-lg border px-3 py-2.5 text-sm font-semibold capitalize transition ${theme === option ? "border-ledger bg-ledger-soft text-ledger" : "border-line text-quiet hover:bg-[var(--raised)] hover:text-ink"}`}>{option}</button>)}
                   </div>
                 </div> : null}
-                {panel === "subscription" ? <div className="space-y-3">
-                  <div className="rounded-lg border border-line bg-[var(--raised)] p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-quiet">Current access</p>
-                    <p className="mt-1 text-sm font-semibold text-ink">{preview ? "Sample preview" : "ScribbleScan account"}</p>
-                  </div>
-                  <p className="text-sm leading-5 text-quiet">Plan and billing options will be available here.</p>
-                </div> : null}
+                {panel === "subscription" ? <PlanSummary preview={preview} /> : null}
               </div>
               {panel === "subscription" ? <div className="border-t border-line px-4 py-3"><button type="button" onClick={onSignOut} className="text-sm font-semibold text-quiet hover:text-ink">{preview ? "Exit preview" : "Sign out"}</button></div> : null}
             </>

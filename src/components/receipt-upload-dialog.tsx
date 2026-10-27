@@ -6,6 +6,7 @@ import { api, clearTokens, request } from "@/src/api/client";
 import type { DocSchema, DocumentOut, FieldSpec, Issue } from "@/src/api/types";
 import { useDemo } from "@/src/components/demo-context";
 import { nice, parseAmount, title, toDMY, toISO } from "@/src/format";
+import { ScansLeft } from "@/src/components/plan-summary";
 
 type FieldKind = NonNullable<FieldSpec["x-kind"]>;
 type FormData = Record<string, unknown>;
@@ -314,7 +315,7 @@ export function ReceiptUploadDialog({ open, onClose }: { open: boolean; onClose:
             </div>
           </div>
 
-          {source === "connected" ? <p role="status" className="mt-3 text-xs text-quiet">Uploading to {activeSpace}; extraction and review stay in this popup.</p> : <div className="mt-3 rounded-md border border-amber/20 bg-amber-soft p-3 text-sm text-ink">
+          {source === "connected" ? <><p role="status" className="mt-3 text-xs text-quiet">Uploading to {activeSpace}; extraction and review stay in this popup.</p><ScansLeft /></> : <div className="mt-3 rounded-md border border-amber/20 bg-amber-soft p-3 text-sm text-ink">
             <p><span className="font-semibold text-amber">Sample account.</span> The receipt will not be uploaded or processed in preview mode.</p>
             <button type="button" onClick={() => { clearTokens(); onClose(); router.push("/connect"); }} className="mt-2 font-semibold text-ledger hover:underline">Switch to a live account</button>
           </div>}
