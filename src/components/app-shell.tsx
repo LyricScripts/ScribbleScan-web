@@ -116,6 +116,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     setAuthorized(false);
     setChecked(true);
+    // Back from signing in (?code=...): the sign-in page swaps the code for tokens.
+    const back = new URLSearchParams(window.location.search);
+    if (back.has("code") || back.has("error")) {
+      router.replace(`/connect${window.location.search}`);
+      return;
+    }
     const returnTo = pathname.startsWith("/") ? pathname : "/";
     router.replace(`/connect?returnTo=${encodeURIComponent(returnTo)}`);
   }, [isPublicRoute, pathname, router]);

@@ -15,6 +15,8 @@ The web frontend is a Bangladesh-first budget and receipt tracking prototype. Th
 
 Connected mode uses the existing ScribbleScan API only through `/v1`. Response types are generated from `openapi.json` into `src/api/generated`; never edit generated files by hand. The Next.js rewrites in `next.config.ts` target `http://127.0.0.1:8000` by default and can be overridden with `SCRIBBLESCAN_API`.
 
+Sign-in (`app/connect/page.tsx`) is passwordless: **Continue with email** (a code, or the link in the email), **Google** and **Apple**, through `/v1/auth/*`. The page makes the PKCE verifier (`oidc.begin()`, kept in localStorage so the emailed link works in a new tab), the API runs the sign-in with Zitadel, and the browser lands on `/?code=...`, which the app shell hands to `/connect` for `oidc.finish()`. `GET /v1/config`'s `login_methods` says which choices work; empty with `auth: "oidc"` means Zitadel's hosted pages, and dev mode signs in from the email step without a code.
+
 Plans (`src/plan.ts`): the API answers `402 {code: "upgrade_required", feature, plan, message}` when something needs a bigger plan. `apiError()` in `src/api/client.ts` turns that into the `ss:upgrade` event, and the one `UpgradeDialog` (mounted in the app shell) shows the plans from `GET /v1/plan`. Use `apiError()` for any failed request so every limit reaches the same prompt. Until payments exist, upgrading is an email to `upgrade_contact`.
 
 The phone pairing secret belongs only in the scan URL fragment. QR SVGs must come from `POST /v1/qr`, never from a URL containing the secret.
