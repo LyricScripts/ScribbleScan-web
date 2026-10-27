@@ -41,10 +41,15 @@ const receiptSchema = {
     currency: { "x-kind": "code" },
     line_items: {
       "x-kind": "rows",
-      items: { properties: {
-        description: { "x-kind": "text" }, quantity: { "x-kind": "number" },
-        unit_price: { "x-kind": "amount" }, discount: { "x-kind": "amount" }, amount: { "x-kind": "amount" },
-      } },
+      items: {
+        properties: {
+          description: { "x-kind": "text" },
+          quantity: { "x-kind": "number" },
+          unit_price: { "x-kind": "amount" },
+          discount: { "x-kind": "amount" },
+          amount: { "x-kind": "amount" },
+        },
+      },
     },
     subtotal: { "x-kind": "amount" },
     discount: { "x-kind": "amount" },
@@ -110,7 +115,10 @@ beforeEach(() => {
     upload: mocks.upload,
     refresh: mocks.refresh,
   });
-  mocks.request.mockResolvedValue({ ok: true, blob: async () => new Blob(["receipt"], { type: "image/png" }) });
+  mocks.request.mockResolvedValue({
+    ok: true,
+    blob: async () => new Blob(["receipt"], { type: "image/png" }),
+  });
   mocks.refresh.mockResolvedValue(undefined);
   mocks.api.mockImplementation(async (path: string, options?: { method?: string; body?: unknown }) => {
     if (options?.method === "PATCH") return { ...documentOut("ready"), ...(options.body as object) };
@@ -155,14 +163,22 @@ describe("receipt upload dialog", () => {
     expect(save).toBeTruthy();
     await act(async () => save?.click());
 
-    const patchCall = mocks.api.mock.calls.find(([, options]) => (options as { method?: string } | undefined)?.method === "PATCH");
-    expect((patchCall?.[1] as { body: { confirmed: boolean; data: { shop_name: string } } }).body).toMatchObject({
+    const patchCall = mocks.api.mock.calls.find(
+      ([, options]) => (options as { method?: string } | undefined)?.method === "PATCH",
+    );
+    expect(
+      (patchCall?.[1] as { body: { confirmed: boolean; data: { shop_name: string } } } | undefined)?.body,
+    ).toMatchObject({
       confirmed: true,
       data: { shop_name: "Corrected shop name" },
     });
     expect(onClose).toHaveBeenCalledOnce();
     expect(mocks.refresh).toHaveBeenCalledOnce();
-    expect(mocks.api.mock.calls.some(([, options]) => (options as { method?: string } | undefined)?.method === "DELETE")).toBe(false);
+    expect(
+      mocks.api.mock.calls.some(
+        ([, options]) => (options as { method?: string } | undefined)?.method === "DELETE",
+      ),
+    ).toBe(false);
   });
 
   it("deletes an unfinished uploaded receipt when the user cancels", async () => {
