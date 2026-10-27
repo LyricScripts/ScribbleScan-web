@@ -604,6 +604,238 @@
         }
       }
     },
+    "/v1/auth/email": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Email Code",
+        "description": "Email a sign-in code. New addresses get an account once the code is entered.",
+        "operationId": "email_code_v1_auth_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailCodeSent"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/email/verify": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Email Code Check",
+        "description": "Check the code; the browser then goes to the returned URL to collect its tokens.",
+        "operationId": "email_code_check_v1_auth_email_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCodeCheck"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/provider": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Provider Start",
+        "description": "Where to send the browser to sign in with Google or Apple.",
+        "operationId": "provider_start_v1_auth_provider_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/provider/finish": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Provider Finish",
+        "description": "Back from Google or Apple: complete the sign-in.",
+        "operationId": "provider_finish_v1_auth_provider_finish_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderReturn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plan": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "summary": "My Plan",
+        "description": "Your plan, this month's automatic scans, and what every plan includes and costs.",
+        "operationId": "my_plan_v1_plan_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/dev/plan": {
+      "post": {
+        "tags": [
+          "dev"
+        ],
+        "summary": "Dev Plan",
+        "description": "Development only: switch your own plan, to try the limits.",
+        "operationId": "dev_plan_v1_dev_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/me": {
       "get": {
         "tags": [
@@ -919,6 +1151,51 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/spaces/{space_id}/reconciliation": {
+      "get": {
+        "tags": [
+          "money"
+        ],
+        "summary": "Reconcile",
+        "description": "Suggest receipt matches for confirmed bank-statement withdrawals.",
+        "operationId": "reconcile_v1_spaces__space_id__reconciliation_get",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Space Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reconcile V1 Spaces  Space Id  Reconciliation Get"
+                }
               }
             }
           },
@@ -1284,174 +1561,6 @@
             "description": "Successful Response",
             "content": {
               "image/svg+xml": {}
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/email": {
-      "post": {
-        "tags": [
-          "sign-in"
-        ],
-        "summary": "Email Code",
-        "description": "Email a sign-in code. New addresses get an account once the code is entered.",
-        "operationId": "email_code_v1_auth_email_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EmailCodeIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmailCodeSent"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/email/verify": {
-      "post": {
-        "tags": [
-          "sign-in"
-        ],
-        "summary": "Email Code Check",
-        "description": "Check the code; the browser then goes to the returned URL to collect its tokens.",
-        "operationId": "email_code_check_v1_auth_email_verify_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EmailCodeCheck"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Redirect"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/provider": {
-      "post": {
-        "tags": [
-          "sign-in"
-        ],
-        "summary": "Provider Start",
-        "description": "Where to send the browser to sign in with Google or Apple.",
-        "operationId": "provider_start_v1_auth_provider_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProviderIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Redirect"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/provider/finish": {
-      "post": {
-        "tags": [
-          "sign-in"
-        ],
-        "summary": "Provider Finish",
-        "description": "Back from Google or Apple: complete the sign-in.",
-        "operationId": "provider_finish_v1_auth_provider_finish_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProviderReturn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Redirect"
-                }
-              }
             }
           },
           "422": {
@@ -2417,6 +2526,176 @@
         ],
         "title": "PairOffer",
         "description": "Show qr_url as a QR code. shower_key opens the offer's event stream (/v1/pair/offers/{id}/events)."
+      },
+      "PlanIn": {
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "free",
+              "plus",
+              "business",
+              "accountant"
+            ],
+            "title": "Plan"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan"
+        ],
+        "title": "PlanIn"
+      },
+      "PlanInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "free",
+              "plus",
+              "business",
+              "accountant"
+            ],
+            "title": "Name"
+          },
+          "scans_per_month": {
+            "type": "integer",
+            "title": "Scans Per Month"
+          },
+          "business_spaces": {
+            "type": "integer",
+            "title": "Business Spaces"
+          },
+          "budget_categories": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Categories",
+            "description": "null: no limit"
+          },
+          "doc_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Doc Types"
+          },
+          "export_formats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Export Formats"
+          },
+          "price_monthly": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Monthly"
+          },
+          "price_yearly": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Yearly"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "scans_per_month",
+          "business_spaces",
+          "budget_categories",
+          "doc_types",
+          "export_formats",
+          "price_monthly",
+          "price_yearly"
+        ],
+        "title": "PlanInfo",
+        "description": "What a plan includes, and its price in the server's currency (null for free)."
+      },
+      "PlanOut": {
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "free",
+              "plus",
+              "business",
+              "accountant"
+            ],
+            "title": "Plan"
+          },
+          "month": {
+            "type": "string",
+            "title": "Month",
+            "description": "YYYY-MM, UTC"
+          },
+          "scans_used": {
+            "type": "integer",
+            "title": "Scans Used"
+          },
+          "scans_limit": {
+            "type": "integer",
+            "title": "Scans Limit"
+          },
+          "automatic_reading": {
+            "type": "boolean",
+            "title": "Automatic Reading",
+            "description": "false until the server has an extraction model; then nothing counts"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "upgrade_contact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upgrade Contact",
+            "description": "email for upgrades, until payments are built in"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PlanInfo"
+            },
+            "type": "array",
+            "title": "Plans"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan",
+          "month",
+          "scans_used",
+          "scans_limit",
+          "automatic_reading",
+          "currency",
+          "upgrade_contact",
+          "plans"
+        ],
+        "title": "PlanOut",
+        "description": "The caller's plan and this month's automatic scans, plus every plan for an upgrade prompt."
       },
       "ProviderIn": {
         "properties": {

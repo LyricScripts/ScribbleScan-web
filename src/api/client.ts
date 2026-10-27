@@ -2,6 +2,7 @@
 // that survive a flaky connection.
 
 import * as oidc from "../oidc";
+import { askToUpgrade, isUpgradeRequired } from "../plan";
 import { store } from "../store";
 import type { ClientConfig, DocumentOut } from "./types";
 
@@ -109,8 +110,21 @@ export async function request(path: string, opts: RequestOptions = {}, retried =
 /** JSON from the API, or an Error carrying its message. */
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const r = await request(path, opts);
-  if (!r.ok) throw new Error(await errorText(r));
+  if (!r.ok) throw await apiError(r);
   return (r.status === 204 ? null : await r.json()) as T;
+}
+
+/** The API's message as an Error. A 402 (the plan doesn't include this) also opens the upgrade prompt. */
+export async function apiError(r: Response): Promise<Error> {
+  if (r.status === 402) {
+    try {
+      const { detail } = (await r.clone().json()) as { detail?: unknown };
+      if (isUpgradeRequired(detail)) askToUpgrade(detail);
+    } catch {
+      /* not JSON: the message below still says what went wrong */
+    }
+  }
+  return new Error(await errorText(r));
 }
 
 export async function errorText(r: Response): Promise<string> {
@@ -151,7 +165,7 @@ export async function uploadFile(spaceId: string, file: File, waits = RETRY_WAIT
       continue; // network error: try again
     }
     if (r.ok) return (await r.json()) as DocumentOut;
-    if (r.status < 500) throw new Error(await errorText(r));
+    if (r.status < 500) throw await apiError(r);
   }
   throw new Error("Couldn't upload. Check your connection and try again.");
 }

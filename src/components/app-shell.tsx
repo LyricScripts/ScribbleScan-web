@@ -9,6 +9,7 @@ import type { NotificationsOut } from "@/src/api/types";
 import { DemoProvider, useDemo } from "@/src/components/demo-context";
 import { type AccountNotification, ProfileMenu } from "@/src/components/profile-menu";
 import { ReceiptUploadDialog } from "@/src/components/receipt-upload-dialog";
+import { UpgradeDialog } from "@/src/components/upgrade-dialog";
 import * as oidc from "@/src/oidc";
 import { store } from "@/src/store";
 
@@ -318,6 +319,7 @@ function AppFrame({ children }: { children: ReactNode }) {
         <Navigation mobile onAddReceipt={openUpload} />
       </div>
       {uploadOpen ? <ReceiptUploadDialog open={uploadOpen} onClose={closeUpload} /> : null}
+      {source === "connected" ? <UpgradeDialog /> : null}
     </div>
   );
 }

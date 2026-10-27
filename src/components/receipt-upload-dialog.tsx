@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, clearTokens, request } from "@/src/api/client";
 import type { DocSchema, DocumentOut, FieldSpec, Issue } from "@/src/api/types";
 import { useDemo } from "@/src/components/demo-context";
+import { ScansLeft } from "@/src/components/plan-summary";
 import { nice, parseAmount, title, toDMY, toISO } from "@/src/format";
 
 type FieldKind = NonNullable<FieldSpec["x-kind"]>;
@@ -450,9 +451,12 @@ export function ReceiptUploadDialog({ open, onClose }: { open: boolean; onClose:
             </div>
 
             {source === "connected" ? (
-              <p role="status" className="mt-3 text-xs text-quiet">
-                Uploading to {activeSpace}; extraction and review stay in this popup.
-              </p>
+              <>
+                <p role="status" className="mt-3 text-xs text-quiet">
+                  Uploading to {activeSpace}; extraction and review stay in this popup.
+                </p>
+                <ScansLeft />
+              </>
             ) : (
               <div className="mt-3 rounded-md border border-amber/20 bg-amber-soft p-3 text-sm text-ink">
                 <p>

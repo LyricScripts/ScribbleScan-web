@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { PlanSummary } from "@/src/components/plan-summary";
 import { store } from "@/src/store";
 
 type Theme = "dark" | "light";
@@ -384,21 +385,7 @@ export function ProfileMenu({
                     </fieldset>
                   </div>
                 ) : null}
-                {panel === "subscription" ? (
-                  <div className="space-y-3">
-                    <div className="rounded-lg border border-line bg-[var(--raised)] p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-quiet">
-                        Current access
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-ink">
-                        {preview ? "Sample preview" : "ScribbleScan account"}
-                      </p>
-                    </div>
-                    <p className="text-sm leading-5 text-quiet">
-                      Plan and billing options will be available here.
-                    </p>
-                  </div>
-                ) : null}
+                {panel === "subscription" ? <PlanSummary preview={preview} /> : null}
               </div>
               {panel === "subscription" ? (
                 <div className="border-t border-line px-4 py-3">
