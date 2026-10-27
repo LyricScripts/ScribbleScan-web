@@ -34,4 +34,11 @@ Refresh generated API types after changing `openapi.json` with `npm run api:type
 
 ## Deployment note
 
-The container now runs the standalone Next.js server on port `3000`. The ScribbleScan VPS Caddy route still expects static files and needs a separate update before deploying this image.
+The container runs the standalone Next.js server on port 3000. Caddy is the front door on the ScribbleScan VPS: it sends `/v1` to the API and everything else to this server, and it adds the Content-Security-Policy header.
+
+Two things about that arrangement, both easy to break:
+
+- The Next.js rewrites in `next.config.ts` only matter in development, where they send `/v1` to `http://127.0.0.1:8000`. Next.js bakes rewrites into the image at build time, so a runtime `SCRIBBLESCAN_API` does nothing; in production Caddy does the routing.
+- The web app's scripts are signed with a nonce that Caddy makes up per request. Next.js only signs a page when it renders it, so `app/layout.tsx` sets `dynamic = "force-dynamic"`: a page served from the build cache would come back unsigned and the browser would refuse to run it. Keep the check in `.github/workflows/ci.yml` (every page's scripts carry the nonce) when changing the routes.
+
+The server must listen on every interface: Podman sets `HOSTNAME` to the container id, and the standalone server would try to bind that name, which fails on hosts without IPv6. The Containerfile and the Quadlet unit both set `HOSTNAME=0.0.0.0`.
